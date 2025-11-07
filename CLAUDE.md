@@ -16,6 +16,97 @@ Ujednolica kierunek pracy nad rapidfab.xyz i zapewnia, że każdy agent LLM rozu
 - **Dokumentacja w repo**: krótkie pliki `.md` w katalogach głównych zamiast osobnych wiki.
 - **Automatyzowalne zadania**: skrypty `make`/`invoke` z parametrami zrozumiałymi dla agentów.
 
+---
+
+## 🚨 TESTING - ABSOLUTNA ZASADA DLA AGENTÓW 🚨
+
+### TL;DR - PRZECZYTAJ TO NAJPIERW
+
+**Po KAŻDEJ zmianie kodu - BEZ WYJĄTKÓW:**
+
+```bash
+task ci
+```
+
+**KONIEC. To wszystko. Jedna komenda.**
+
+### Zasady (ZERO kompromisów):
+
+1. **ZAWSZE** uruchom `task ci` po zakończeniu pracy
+2. **NIGDY** nie commituj jeśli `task ci` pokazuje błąd (❌)
+3. **TYLKO** commituj gdy widzisz `✅ CI passed`
+4. Jeśli coś failuje → napraw → `task ci` → powtórz
+
+### Co testuje `task ci` (42 sekundy):
+
+```
+🚀 Running CI...
+  ├─ Format check (cargo fmt)
+  ├─ Linter (cargo clippy -D warnings)
+  ├─ Unit tests
+  ├─ Docker build (with cache)
+  ├─ Docker deploy + health checks
+  ├─ E2E tests (auto-discovery)
+  └─ Cleanup
+✅ CI passed
+```
+
+### Output (silent mode):
+
+**Sukces (3 linie):**
+```
+🚀 Running CI...
+Failed: 0
+✅ CI passed
+```
+
+**Fail (pokazuje tylko błędy):**
+```
+🚀 Running CI...
+error[E0308]: mismatched types
+  --> src/main.rs:42:5
+❌ Clippy failed
+```
+
+### Dlaczego to jest ważne?
+
+- **Jeden command** = wszystko przetestowane (fmt, lint, unit, Docker, E2E)
+- **42 sekundy** = szybki feedback loop
+- **Silent mode** = zero spamu, tylko błędy
+- **Auto-discovery** = nowe testy automatycznie wykrywane
+- **Prod-like** = testuje Docker containers, nie native code
+
+### Kiedy NIE używać `task ci`:
+
+NIGDY. Zawsze używaj `task ci`.
+
+### Przykładowy workflow:
+
+```bash
+# 1. Agent implementuje feature
+vim src/app/my_feature.rs
+
+# 2. NATYCHMIAST po zmianach
+task ci
+
+# 3a. Jeśli ✅ CI passed
+git add .
+git commit -m "feat: add my feature"
+git push
+
+# 3b. Jeśli ❌ failed
+# Fix błąd...
+task ci  # Powtórz aż ✅
+```
+
+### Dokumentacja szczegółowa:
+
+Jeśli potrzebujesz więcej info → `tests/CLAUDE.md`
+
+**ALE pamiętaj: 99% czasu potrzebujesz tylko `task ci`.**
+
+---
+
 ## Styl kodowania
 - **Less is more**: preferuj krótkie moduły Rust (< 300 linii); jeśli rośnie → rozbij na podmoduły.
 - **SOLID / DRY / KISS**: brak powtórzeń, proste nazewnictwo (`verb_subject`), jawne interfejsy traits.
@@ -23,221 +114,62 @@ Ujednolica kierunek pracy nad rapidfab.xyz i zapewnia, że każdy agent LLM rozu
 - **Konwencja**: `cargo fmt`, `cargo clippy -D warnings`, testy (`cargo test`). W Python workerach `ruff` + `pytest` jeśli są użyte.
 - **Logging i błędy**: `tracing` z poziomami INFO/WARN, błędy mapowane na struktury JSON, brak stack trace w odpowiedzi REST.
 
-## Testing - Strategia i Lokalizacje
+## Testing - Lokalizacje (dla referencji)
 
-### Poziomy testów
-Zgodnie z **plan/PRD-002-testing-strategy.md**, projekt używa 4 poziomów testów:
+**UŻYWAJ `task ci` - nie uruchamiaj testów ręcznie!**
 
-#### 1. Unit Tests (w kodzie modułów)
-**Lokalizacja:** `services/api/src/**/*_test.rs` lub inline `#[cfg(test)]`
-**Uruchomienie:**
-```bash
-cd services/api
-cargo test --lib --bins
-```
-**Cel:** Testowanie pojedynczych funkcji, logiki biznesowej w izolacji.
-**Przykład:** Testy parsowania konfiguracji, validacja DTO, hashowanie haseł.
+### Gdzie są testy:
 
-#### 2. Integration Tests (z bazą danych)
-**Lokalizacja:** `services/api/tests/*.rs`
-**Pliki:**
-- `integration_test.rs` - testy auth flow (register, login, logout)
-- `health_test.rs` - testy health endpoints
+1. **Unit tests**: `services/api/src/**/*_test.rs` (inline w kodzie)
+2. **Integration tests**: `services/api/tests/*.rs` (integration_test.rs, health_test.rs, security_test.rs)
+3. **E2E tests**: `tests/e2e/*_test.sh` (auto-discovery, bash scripts)
 
-**Uruchomienie:**
-```bash
-# Start PostgreSQL
-docker-compose up -d postgres
-
-# Run tests
-cd services/api
-export DATABASE_URL="postgres://rapidfab:rapidfab-dev@localhost:5432/rapidfab"
-cargo test --test integration_test -- --test-threads=1
-```
-
-**Cel:** Testowanie integracji z PostgreSQL, sqlx queries, migracje.
-**Pokrycie:** Auth flow, DB persistence, session management.
-
-#### 3. Contract Tests (API contracts)
-**Lokalizacja:** `tests/contracts/` (TODO - planned for M1)
-**Cel:** Weryfikacja kontraktów API między serwisami (API ↔ Pricing FDM).
-
-#### 4. E2E Tests (full stack)
-**Lokalizacja:** `tests/e2e/auth_flow_test.sh`
-**Uruchomienie:**
-```bash
-# Start full stack
-docker-compose up -d
-
-# Run E2E tests
-./tests/e2e/auth_flow_test.sh
-```
-
-**Testowane scenariusze:**
-1. Health check (`/health/healthz`)
-2. User registration (`POST /auth/register`)
-3. Get profile with auth (`GET /users/me`)
-4. Logout (`POST /auth/logout`)
-5. Access denied after logout (401)
-6. Login with credentials (`POST /auth/login`)
-
-**Output:**
-```
-=== E2E Test: Auth Flow ===
-Test 1: Health check... ✅ PASS
-Test 2: Register user... ✅ PASS
-Test 3: Get user profile... ✅ PASS
-Test 4: Logout... ✅ PASS
-Test 5: Profile access after logout... ✅ PASS
-Test 6: Login with credentials... ✅ PASS
-```
-
-### Uruchomienie wszystkich testów
-
-#### Lokalne (bez Docker)
-```bash
-# Format + Lint
-cd services/api
-cargo fmt --check
-cargo clippy --all-targets -- -D warnings
-
-# Unit tests
-cargo test --lib --bins
-
-# Integration (wymaga DB)
-docker-compose up -d postgres
-export DATABASE_URL="postgres://rapidfab:rapidfab-dev@localhost:5432/rapidfab"
-cargo test --test '*' -- --test-threads=1
-```
-
-#### Docker (full stack)
-```bash
-# Start all services
-docker-compose up -d
-
-# Wait for API
-sleep 10
-
-# Run E2E
-./tests/e2e/auth_flow_test.sh
-```
-
-#### Makefile (root)
-```bash
-make test-unit          # Unit tests
-make test-integration   # Integration tests
-make test-all           # All tests
-make test-pipeline      # Full E2E pipeline (Docker containers)
-```
-
-### Test Pipeline (Prod-like Container Testing)
-
-**Cel:** Testowanie całej usługi jako kontenery Docker (prod-like environment).
-
-**Skrypt:** `scripts/test-pipeline.sh`
-
-**Kroki:**
-1. **Cleanup** - `docker-compose down -v --remove-orphans`
-2. **Build** - Kompilacja obrazów Docker (compilation pipeline)
-3. **Deploy** - `docker-compose up -d` (deployment pipeline)
-4. **Health checks** - Czekanie na gotowość API
-5. **E2E tests** - Uruchomienie wszystkich testów z `tests/e2e/*.sh`
-6. **Cleanup** - Posprzątanie kontenerów i volumes
-
-**Uruchomienie:**
-```bash
-# Pełny pipeline (build + deploy + test + cleanup)
-make test-pipeline
-
-# Alternatywnie bezpośrednio
-./scripts/test-pipeline.sh
-```
-
-**Output:**
-```
-=== RapidFab Testing Pipeline ===
-[1/5] Cleanup previous containers... ✓
-[2/5] Building Docker images (compilation pipeline)... ✓
-[3/5] Starting services (deployment pipeline)... ✓
-[4/5] Running E2E tests...
-  Running: auth_flow_test.sh ✓ PASSED
-[5/5] Cleanup... ✓
-
-=== Test Results ===
-Passed: 1
-Failed: 0
-✓ All tests passed!
-```
-
-**Kiedy używać:**
-- Po zakończeniu pracy agenta (weryfikacja przed commit)
-- Przed git push (upewnienie się że deployment działa)
-- Przy dodawaniu nowych testów E2E (automatycznie wykrywa `tests/e2e/*.sh`)
-- Debugging problemów z docker-compose
-
-**Dodawanie nowych testów:**
-Wystarczy dodać plik `tests/e2e/new_test.sh` - script automatycznie go znajdzie i uruchomi.
-
-### CI/CD Pipeline
-**Lokalizacja:** `.github/workflows/ci.yml`
-**Jobs:**
-1. **fmt** - Format check (`cargo fmt --check`)
-2. **clippy** - Linting (`cargo clippy -D warnings`)
-3. **unit-tests** - Unit tests
-4. **integration-tests** - Integration tests (z PostgreSQL service)
-5. **build** - Release build
-6. **docker-build** - Docker image build
-
-**Trigger:** Push/PR na `main` lub `develop`
-**Status:** https://github.com/Pondiniii/rapidfab/actions
-
-### Dokumentacja testów
-- **Strategia:** `plan/PRD-002-testing-strategy.md`
-- **Coverage:** `services/api/docs/TEST_NOTES.md`
-- **Smoke test report:** `services/api/docs/SMOKE_TEST_REPORT.md`
-
-### Zasady testowania dla agentów
-1. **Każdy feature = testy** - Minimum 1 test automatyczny.
-2. **Test first dla edge cases** - Najpierw test, potem fix.
-3. **Cleanup po testach** - Testy muszą czyścić dane w DB.
-4. **Fixtures minimalne** - Używaj `tests/fixtures.rs` dla setup.
-5. **Determinizm** - Testy muszą być powtarzalne (brak rand(), timestamps fixed).
-6. **Naming convention:** `test_<scenario>_<expected_outcome>`
-
-### Quick Test Commands (cheat sheet)
+### Dodawanie nowych testów E2E:
 
 ```bash
-# Quick smoke test (2 min)
-cd services/api && cargo check && cargo clippy
+# 1. Utwórz plik w tests/e2e/
+touch tests/e2e/my_feature_test.sh
+chmod +x tests/e2e/my_feature_test.sh
 
-# Full local test (5 min)
-docker-compose up -d postgres
-cd services/api && cargo test
+# 2. Napisz test (bash + curl)
+cat > tests/e2e/my_feature_test.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Full E2E test (10 min)
-docker-compose up -d
-./tests/e2e/auth_flow_test.sh
+# Test logic
+curl -sf http://localhost:8080/api/endpoint || exit 1
+echo "✅ Test passed"
+EOF
 
-# Full pipeline test - RECOMMENDED (prod-like, 3-5 min)
-make test-pipeline
-# Testuje: compilation + deployment + E2E + cleanup
-
-# Watch mode (development)
-cd services/api
-cargo watch -x test
+# 3. Run CI (auto-discovers new test!)
+task ci
 ```
 
-### Debugging testów
+**Zero konfiguracji - file convention: `tests/e2e/*_test.sh` + executable.**
+
+---
+
+### Inne komendy (dla advanced use cases):
+
+**99% czasu NIE potrzebujesz tych komend - używaj `task ci`!**
+
 ```bash
-# Verbose output
-RUST_LOG=debug cargo test -- --nocapture
+# Debugging pojedynczego testu
+task test:e2e          # Tylko E2E tests
+task test:unit         # Tylko unit tests
+task fmt               # Tylko format check
+task lint              # Tylko linter
 
-# Single test
-cargo test test_auth_flow -- --nocapture
+# Development watch mode (continuous testing)
+cd services/api && cargo watch -x test
 
-# Show stdout even for passing tests
-cargo test -- --show-output
+# Verbose test output (debugging)
+cd services/api && RUST_LOG=debug cargo test -- --nocapture
+```
 
-# E2E debug
-BASE_URL=http://localhost:8080 ./tests/e2e/auth_flow_test.sh
-```  
+### Dokumentacja szczegółowa:
+
+- **Pełna dokumentacja testowania:** `tests/CLAUDE.md`
+- **Strategia testów:** `plan/PRD-002-testing-strategy.md`
+
+---
