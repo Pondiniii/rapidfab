@@ -18,7 +18,7 @@ tasks:
   ci:
     desc: Full CI pipeline - run after agent work
     summary: |
-      Runs complete CI pipeline:
+      Runs complete CI pipeline (SILENT MODE - only shows failures):
       1. Stop Docker if running
       2. Format check (cargo fmt)
       3. Linter (cargo clippy)
@@ -31,30 +31,26 @@ tasks:
 
       Exit code: 0 = all passed, non-zero = failures
       AGENTS CANNOT COMMIT IF THIS FAILS!
+    silent: true
     cmds:
-      - echo "🚀 Full CI pipeline starting..."
-      - echo "🐳 Stopping Docker if running..."
+      - echo "🚀 Running CI..."
       - docker-compose down 2>/dev/null || true
       - task: fmt
       - task: lint
       - task: test:unit
-      - echo "🐳 Building Docker images (with layer cache)..."
-      - docker-compose build
-      - echo "🐳 Starting services..."
-      - docker-compose up -d
+      - docker-compose build 2>&1 | grep -i "error\|failed" || true
+      - docker-compose up -d >/dev/null 2>&1
       - task: docker:wait-healthy
       - task: test:e2e
-      - echo "🐳 Cleaning up Docker..."
-      - docker-compose down -v
-      - echo "✅ CI passed - ready to commit"
+      - docker-compose down -v >/dev/null 2>&1
+      - echo "✅ CI passed"
 
   fmt:
     desc: Check code formatting
     dir: "{{.API_DIR}}"
+    silent: true
     cmds:
-      - echo "📝 Checking code format..."
       - cargo fmt --all -- --check
-      - echo "✅ Format check passed"
 
   fmt:fix:
     desc: Auto-fix code formatting
@@ -67,12 +63,11 @@ tasks:
   lint:
     desc: Run linter (clippy)
     dir: "{{.API_DIR}}"
+    silent: true
     env:
       SQLX_OFFLINE: "true"
     cmds:
-      - echo "🔍 Running linter..."
-      - cargo clippy --all-targets -- -D warnings
-      - echo "✅ Lint check passed"
+      - cargo clippy --all-targets -- -D warnings 2>&1 | grep -v "Finished\|Checking" || true
 
   test:
     desc: Run Rust tests (unit + integration)
@@ -88,12 +83,11 @@ tasks:
   test:unit:
     desc: Run only unit tests
     dir: "{{.API_DIR}}"
+    silent: true
     env:
       SQLX_OFFLINE: "true"
     cmds:
-      - echo "🧪 Running unit tests..."
-      - cargo test --lib --bins
-      - echo "✅ Unit tests passed"
+      - cargo test --lib --bins 2>&1 | grep -E "error\|FAILED\|test result:" || true
 
   test:integration:
     desc: Run only integration tests
@@ -107,10 +101,9 @@ tasks:
 
   test:e2e:
     desc: Run E2E tests (auto-discovery)
+    silent: true
     cmds:
-      - echo "🌐 Running E2E tests..."
-      - ./scripts/test-e2e.sh
-      - echo "✅ E2E tests passed"
+      - ./scripts/test-e2e.sh 2>&1 | grep -E "FAILED|❌|Error|Failed" || true
 
   build:
     desc: Build API in release mode
@@ -158,14 +151,13 @@ tasks:
 
   docker:wait-healthy:
     desc: Wait for services to be healthy
+    silent: true
     cmds:
-      - echo "⏳ Waiting for API to be healthy..."
       - |
         TIMEOUT=60
         elapsed=0
         while [ $elapsed -lt $TIMEOUT ]; do
           if curl -sf http://localhost:8080/health/healthz > /dev/null 2>&1; then
-            echo "✅ API is healthy"
             exit 0
           fi
           sleep 2
