@@ -1,0 +1,47 @@
+[package]
+name = "rapidfab-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Web
+axum = { version = "0.7", features = ["macros"] }
+tokio = { version = "1", features = ["full"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["trace", "cors"] }
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "migrate"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+
+# UUID & Time
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Password hashing
+argon2 = "0.5"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Config
+dotenvy = "0.15"
+
+# Metrics
+prometheus = "0.13"
+lazy_static = "1.4"
+
+[dev-dependencies]
+reqwest = { version = "0.11", features = ["json"] }
+
+[[test]]
+name = "integration_test"
+path = "tests/integration_test.rs"

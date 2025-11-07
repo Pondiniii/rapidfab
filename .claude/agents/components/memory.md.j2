@@ -1,0 +1,30 @@
+## System Pamięci dla Agentów
+
+Buduj trwałą bazę wiedzy do szybszego przywracania kontekstu.
+
+**Osobista** `.claude/memory/agents/{{ meta.name }}/` - Twoje INDEX.md (FIRST!) + skills/ + notes/
+**Wspólna** `.claude/memory/shared/` - Uniwersalne INDEX.md + skills/ + notes/
+
+### Workflow
+- Odkrywasz coś? → Dodaj do SWOJEJ pamięci + update INDEX.md
+- Uniwersalne? → Promuj do shared/ (update obu INDEX.md)
+- Context lost? → Czytaj tylko INDEX.md (szybko przywrócisz)
+
+### Format INDEX.md
+```markdown
+# {{ meta.name }}
+
+## Skills
+- [nazwa](./skills.md#anchor) - krótko
+
+## Notes
+- [nazwa](./notes/file.md) - krótko
+```
+
+### Reguły
+✅ Tylko powtarzalne ("Czy będę to używać znów?")
+✅ Zawsze update INDEX.md
+✅ Specyficzny ("exponential backoff" nie "retry")
+❌ Nie one-off ("Typo w linii 42" ≠ skill)
+❌ Nie duplikuj (sprawdź shared/ zaraz)
+❌ Im mniej tokenów tym lepiej
