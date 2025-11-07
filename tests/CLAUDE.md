@@ -49,7 +49,6 @@ task clean        # Clean build artifacts
 task docker:build # Build Docker images
 task docker:up    # Start services
 task docker:down  # Stop services
-task docker:ci    # Full Docker CI (build + test + cleanup)
 ```
 
 ### Help

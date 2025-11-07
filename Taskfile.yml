@@ -167,13 +167,6 @@ tasks:
         docker-compose logs api
         exit 1
 
-  docker:ci:
-    desc: Full CI with Docker (build + deploy + test + cleanup)
-    cmds:
-      - echo "🐳 Running full Docker CI pipeline..."
-      - ./scripts/test-pipeline.sh
-      - echo "✅ Docker CI passed"
-
   help:
     desc: Show available tasks
     cmds:
