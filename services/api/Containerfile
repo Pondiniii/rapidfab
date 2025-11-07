@@ -1,27 +1,33 @@
 # Multi-stage build for RapidFab API
 
 # Stage 1: Build
-FROM rust:1.75-alpine AS builder
+FROM rust:alpine AS builder
 
-RUN apk add --no-cache musl-dev
+RUN apk add --no-cache musl-dev pkgconfig openssl-dev
 
 WORKDIR /app
 
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 COPY migrations ./migrations
+COPY .sqlx ./.sqlx
+
+ENV SQLX_OFFLINE=true
 
 RUN cargo build --release
 
 # Stage 2: Runtime
 FROM alpine:latest
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates libgcc curl postgresql-client
 
 WORKDIR /app
 
 COPY --from=builder /app/target/release/rapidfab-api .
 COPY --from=builder /app/migrations ./migrations
+COPY docker-entrypoint.sh .
+
+RUN chmod +x docker-entrypoint.sh
 
 ENV RUST_LOG=info
 ENV API_HOST=0.0.0.0
@@ -29,4 +35,5 @@ ENV API_PORT=8080
 
 EXPOSE 8080
 
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["./rapidfab-api"]
