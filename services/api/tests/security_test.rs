@@ -1,5 +1,5 @@
-use serde_json::json;
 use reqwest::StatusCode;
+use serde_json::json;
 
 /// Security and edge case tests for authentication endpoints
 /// Requires PostgreSQL running on localhost:5432
@@ -27,7 +27,12 @@ async fn test_empty_email_and_password_fields() {
         .expect("Failed to send request");
 
     // API accepts it (DB constraints may reject)
-    assert!(res.status() == StatusCode::OK || res.status().is_client_error() || res.status().is_server_error(), "Empty email request handled");
+    assert!(
+        res.status() == StatusCode::OK
+            || res.status().is_client_error()
+            || res.status().is_server_error(),
+        "Empty email request handled"
+    );
 }
 
 #[tokio::test]
@@ -50,7 +55,12 @@ async fn test_short_password_accepted() {
         .expect("Failed to send request");
 
     // API currently accepts short passwords
-    assert!(res.status() == StatusCode::OK || res.status().is_client_error() || res.status().is_server_error(), "Short password request handled");
+    assert!(
+        res.status() == StatusCode::OK
+            || res.status().is_client_error()
+            || res.status().is_server_error(),
+        "Short password request handled"
+    );
 }
 
 #[tokio::test]
@@ -59,11 +69,7 @@ async fn test_invalid_email_format_accepted() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
 
-    let invalid_emails = vec![
-        "not_an_email",
-        "user@",
-        "@example.com",
-    ];
+    let invalid_emails = vec!["not_an_email", "user@", "@example.com"];
 
     for invalid_email in invalid_emails {
         let res = client
@@ -77,7 +83,12 @@ async fn test_invalid_email_format_accepted() {
             .expect("Failed to send request");
 
         // API accepts invalid email formats (relies on DB NOT NULL constraint)
-        assert!(res.status() == StatusCode::OK || res.status().is_client_error() || res.status().is_server_error(), "Email '{}' request handled", invalid_email);
+        assert!(
+            res.status() == StatusCode::OK
+                || res.status().is_client_error()
+                || res.status().is_server_error(),
+            "Email '{invalid_email}' request handled"
+        );
     }
 }
 
@@ -105,7 +116,12 @@ async fn test_sql_injection_blocked_by_sqlx() {
             .expect("Failed to send request");
 
         // Request is safely handled - sqlx prevents injection
-        assert!(res.status() == StatusCode::OK || res.status().is_client_error() || res.status().is_server_error(), "SQL injection attempt safely handled");
+        assert!(
+            res.status() == StatusCode::OK
+                || res.status().is_client_error()
+                || res.status().is_server_error(),
+            "SQL injection attempt safely handled"
+        );
 
         // Verify database is still intact by checking if we can make a normal request
         let health = reqwest::get(format!("{base_url}/health/healthz"))
@@ -136,7 +152,11 @@ async fn test_xss_attempt_in_full_name() {
         .expect("Failed to send request");
 
     // Backend stores raw string (XSS prevention is frontend responsibility)
-    assert_eq!(res.status(), 200, "Registration should succeed with XSS payload");
+    assert_eq!(
+        res.status(),
+        200,
+        "Registration should succeed with XSS payload"
+    );
 
     // Verify full_name is stored as-is
     let auth_body: serde_json::Value = res.json().await.expect("Failed to parse");
@@ -150,7 +170,10 @@ async fn test_xss_attempt_in_full_name() {
         .expect("Failed to get user");
 
     let user_body: serde_json::Value = me_res.json().await.expect("Failed to parse user");
-    assert_eq!(user_body["full_name"], xss_payload, "Full name stored as-is");
+    assert_eq!(
+        user_body["full_name"], xss_payload,
+        "Full name stored as-is"
+    );
 }
 
 #[tokio::test]
@@ -193,12 +216,7 @@ async fn test_invalid_bearer_token_format() {
             .await
             .expect("Failed to send request");
 
-        assert_eq!(
-            res.status(),
-            401,
-            "{} should return 401",
-            description
-        );
+        assert_eq!(res.status(), 401, "{description} should return 401");
     }
 }
 
@@ -217,7 +235,7 @@ async fn test_malformed_token() {
     for token in malformed_tokens {
         let res = client
             .get(format!("{base_url}/users/me"))
-            .header("Authorization", format!("Bearer {}", token))
+            .header("Authorization", format!("Bearer {token}"))
             .send()
             .await
             .expect("Failed to send request");
@@ -225,8 +243,7 @@ async fn test_malformed_token() {
         assert_eq!(
             res.status(),
             401,
-            "Invalid token '{}' should return 401",
-            token
+            "Invalid token '{token}' should return 401"
         );
     }
 }
@@ -288,8 +305,10 @@ async fn test_case_insensitive_email_handling() {
 
     // Documents current behavior - may or may not be case-insensitive
     // Depends on database collation and application logic
-    assert!(login_res.status() == 200 || login_res.status() == 401,
-            "Email case handling documented");
+    assert!(
+        login_res.status() == 200 || login_res.status() == 401,
+        "Email case handling documented"
+    );
 }
 
 #[tokio::test]
@@ -304,11 +323,7 @@ async fn test_logout_without_auth_header() {
         .await
         .expect("Failed to send request");
 
-    assert_eq!(
-        res.status(),
-        401,
-        "Logout without token should return 401"
-    );
+    assert_eq!(res.status(), 401, "Logout without token should return 401");
 }
 
 #[tokio::test]
@@ -326,8 +341,10 @@ async fn test_logout_with_invalid_token() {
 
     // Documents: logout doesn't validate token format, returns 204 for any Bearer token
     // This is a behavior note - token validation happens only in session lookup
-    assert!(res.status() == StatusCode::UNAUTHORIZED || res.status() == StatusCode::NO_CONTENT,
-            "Logout with invalid token behavior documented");
+    assert!(
+        res.status() == StatusCode::UNAUTHORIZED || res.status() == StatusCode::NO_CONTENT,
+        "Logout with invalid token behavior documented"
+    );
 }
 
 #[tokio::test]
@@ -372,8 +389,10 @@ async fn test_double_logout_behavior() {
         .expect("Failed second logout");
 
     // Documents: second logout may return 204 (idempotent) or 401 (token invalid)
-    assert!(logout2.status() == 204 || logout2.status() == 401,
-            "Second logout behavior documented");
+    assert!(
+        logout2.status() == 204 || logout2.status() == 401,
+        "Second logout behavior documented"
+    );
 }
 
 #[tokio::test]
@@ -395,8 +414,12 @@ async fn test_very_long_email() {
         .expect("Failed to send request");
 
     // Should succeed or fail gracefully
-    assert!(res.status().is_success() || res.status().is_client_error() || res.status().is_server_error(),
-            "Very long email should be handled gracefully");
+    assert!(
+        res.status().is_success()
+            || res.status().is_client_error()
+            || res.status().is_server_error(),
+        "Very long email should be handled gracefully"
+    );
 }
 
 #[tokio::test]
@@ -419,8 +442,12 @@ async fn test_very_long_password() {
         .expect("Failed to send request");
 
     // Should succeed or fail gracefully
-    assert!(res.status().is_success() || res.status().is_client_error() || res.status().is_server_error(),
-            "Very long password should be handled gracefully");
+    assert!(
+        res.status().is_success()
+            || res.status().is_client_error()
+            || res.status().is_server_error(),
+        "Very long password should be handled gracefully"
+    );
 }
 
 #[tokio::test]
@@ -438,7 +465,11 @@ async fn test_special_characters_in_email() {
 
     for (email, desc) in special_char_emails {
         // Use UUID to avoid conflicts from previous test runs
-        let unique_email = format!("{}-{}@example.com", email.split('@').next().unwrap(), uuid::Uuid::new_v4());
+        let unique_email = format!(
+            "{}-{}@example.com",
+            email.split('@').next().unwrap(),
+            uuid::Uuid::new_v4()
+        );
 
         let res = client
             .post(format!("{base_url}/auth/register"))
@@ -453,8 +484,7 @@ async fn test_special_characters_in_email() {
         assert_eq!(
             res.status(),
             200,
-            "Valid special characters ({}) in email should be accepted",
-            desc
+            "Valid special characters ({desc}) in email should be accepted"
         );
     }
 }
@@ -465,13 +495,7 @@ async fn test_unicode_in_full_name() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
 
-    let unicode_names = vec![
-        "José García",
-        "王小明",
-        "Müller",
-        "Иван Петров",
-        "محمد علي",
-    ];
+    let unicode_names = vec!["José García", "王小明", "Müller", "Иван Петров", "محمد علي"];
 
     for unicode_name in unicode_names {
         let res = client
@@ -488,8 +512,7 @@ async fn test_unicode_in_full_name() {
         assert_eq!(
             res.status(),
             200,
-            "Unicode full name should be accepted: {}",
-            unicode_name
+            "Unicode full name should be accepted: {unicode_name}"
         );
     }
 }
@@ -508,7 +531,7 @@ async fn test_rapid_repeated_requests() {
         let base_url = base_url.to_string();
 
         let handle = tokio::spawn(async move {
-            let email = format!("rapid-test-{}@example.com", i);
+            let email = format!("rapid-test-{i}@example.com");
             let res = client
                 .post(format!("{base_url}/auth/register"))
                 .json(&json!({
@@ -528,6 +551,8 @@ async fn test_rapid_repeated_requests() {
     let results = futures::future::join_all(handles).await;
 
     // All requests should complete successfully (no crashes)
-    assert!(results.iter().all(|r| r.is_ok()),
-            "All rapid requests should complete without panic");
+    assert!(
+        results.iter().all(|r| r.is_ok()),
+        "All rapid requests should complete without panic"
+    );
 }

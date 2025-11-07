@@ -31,3 +31,7 @@ grafana-data/
 # Test artifacts
 *.profraw
 *.profdata
+
+# Task runner
+.task/
+Taskfile.dist.yml

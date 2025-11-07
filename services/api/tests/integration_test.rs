@@ -201,12 +201,15 @@ async fn test_token_invalidation_after_multiple_logouts() {
     assert_eq!(register_res.status(), 200);
 
     let auth: serde_json::Value = register_res.json().await.expect("Failed to parse");
-    let token = auth["token"].as_str().expect("Token should exist").to_string();
+    let token = auth["token"]
+        .as_str()
+        .expect("Token should exist")
+        .to_string();
 
     // Verify token works before logout
     let me_before = client
         .get(format!("{base_url}/users/me"))
-        .header("Authorization", format!("Bearer {}", token))
+        .header("Authorization", format!("Bearer {token}"))
         .send()
         .await
         .expect("Failed to get user");
@@ -216,7 +219,7 @@ async fn test_token_invalidation_after_multiple_logouts() {
     // Logout (invalidate token)
     let logout_res = client
         .post(format!("{base_url}/auth/logout"))
-        .header("Authorization", format!("Bearer {}", token))
+        .header("Authorization", format!("Bearer {token}"))
         .send()
         .await
         .expect("Failed to logout");
@@ -226,7 +229,7 @@ async fn test_token_invalidation_after_multiple_logouts() {
     // Verify token no longer works
     let me_after = client
         .get(format!("{base_url}/users/me"))
-        .header("Authorization", format!("Bearer {}", token))
+        .header("Authorization", format!("Bearer {token}"))
         .send()
         .await
         .expect("Failed to get user after logout");

@@ -7,14 +7,22 @@ RUN apk add --no-cache musl-dev pkgconfig openssl-dev
 
 WORKDIR /app
 
-COPY Cargo.toml Cargo.lock ./
-COPY src ./src
-COPY migrations ./migrations
-COPY .sqlx ./.sqlx
-
 ENV SQLX_OFFLINE=true
 
-RUN cargo build --release
+# Layer 1: Build dependencies only (cached until Cargo.toml/Cargo.lock changes)
+COPY Cargo.toml Cargo.lock ./
+COPY .sqlx ./.sqlx
+RUN mkdir src && \
+    echo "fn main() {}" > src/main.rs && \
+    touch src/lib.rs && \
+    cargo build --locked && \
+    rm -rf src
+
+# Layer 2: Build actual application (fast rebuild when only code changes)
+COPY src ./src
+COPY migrations ./migrations
+# Clean only app artifacts, keep dependencies in cache
+RUN cargo clean -p rapidfab-api && cargo build --locked
 
 # Stage 2: Runtime
 FROM alpine:latest
@@ -23,7 +31,7 @@ RUN apk add --no-cache ca-certificates libgcc curl postgresql-client
 
 WORKDIR /app
 
-COPY --from=builder /app/target/release/rapidfab-api .
+COPY --from=builder /app/target/debug/rapidfab-api .
 COPY --from=builder /app/migrations ./migrations
 COPY docker-entrypoint.sh .
 

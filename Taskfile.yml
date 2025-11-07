@@ -1,0 +1,188 @@
+version: '3'
+
+# RapidFab.xyz Task-based CI Pipeline
+# Usage: task ci (or just: task)
+# Documentation: tests/CLAUDE.md
+
+vars:
+  API_DIR: services/api
+  TESTS_DIR: tests
+  E2E_DIR: tests/e2e
+
+tasks:
+  default:
+    desc: Run full CI pipeline (default)
+    cmds:
+      - task: ci
+
+  ci:
+    desc: Full CI pipeline - run after agent work
+    summary: |
+      Runs complete CI pipeline:
+      1. Stop Docker if running
+      2. Format check (cargo fmt)
+      3. Linter (cargo clippy)
+      4. Unit tests (cargo test --lib)
+      5. Build Docker images
+      6. Deploy Docker stack
+      7. Wait for services healthy
+      8. E2E tests (auto-discovered from tests/e2e/*_test.sh)
+      9. Cleanup Docker
+
+      Exit code: 0 = all passed, non-zero = failures
+      AGENTS CANNOT COMMIT IF THIS FAILS!
+    cmds:
+      - echo "🚀 Full CI pipeline starting..."
+      - echo "🐳 Stopping Docker if running..."
+      - docker-compose down 2>/dev/null || true
+      - task: fmt
+      - task: lint
+      - task: test:unit
+      - echo "🐳 Building Docker images (with layer cache)..."
+      - docker-compose build
+      - echo "🐳 Starting services..."
+      - docker-compose up -d
+      - task: docker:wait-healthy
+      - task: test:e2e
+      - echo "🐳 Cleaning up Docker..."
+      - docker-compose down -v
+      - echo "✅ CI passed - ready to commit"
+
+  fmt:
+    desc: Check code formatting
+    dir: "{{.API_DIR}}"
+    cmds:
+      - echo "📝 Checking code format..."
+      - cargo fmt --all -- --check
+      - echo "✅ Format check passed"
+
+  fmt:fix:
+    desc: Auto-fix code formatting
+    dir: "{{.API_DIR}}"
+    cmds:
+      - echo "📝 Auto-fixing code format..."
+      - cargo fmt --all
+      - echo "✅ Format fixed"
+
+  lint:
+    desc: Run linter (clippy)
+    dir: "{{.API_DIR}}"
+    env:
+      SQLX_OFFLINE: "true"
+    cmds:
+      - echo "🔍 Running linter..."
+      - cargo clippy --all-targets -- -D warnings
+      - echo "✅ Lint check passed"
+
+  test:
+    desc: Run Rust tests (unit + integration)
+    dir: "{{.API_DIR}}"
+    env:
+      SQLX_OFFLINE: "true"
+    cmds:
+      - echo "🧪 Running Rust tests..."
+      - cargo test --lib --bins
+      - cargo test --test '*' -- --test-threads=1
+      - echo "✅ Rust tests passed"
+
+  test:unit:
+    desc: Run only unit tests
+    dir: "{{.API_DIR}}"
+    env:
+      SQLX_OFFLINE: "true"
+    cmds:
+      - echo "🧪 Running unit tests..."
+      - cargo test --lib --bins
+      - echo "✅ Unit tests passed"
+
+  test:integration:
+    desc: Run only integration tests
+    dir: "{{.API_DIR}}"
+    env:
+      SQLX_OFFLINE: "true"
+    cmds:
+      - echo "🧪 Running integration tests..."
+      - cargo test --test '*' -- --test-threads=1
+      - echo "✅ Integration tests passed"
+
+  test:e2e:
+    desc: Run E2E tests (auto-discovery)
+    cmds:
+      - echo "🌐 Running E2E tests..."
+      - ./scripts/test-e2e.sh
+      - echo "✅ E2E tests passed"
+
+  build:
+    desc: Build API in release mode
+    dir: "{{.API_DIR}}"
+    cmds:
+      - echo "🔨 Building API (release mode)..."
+      - cargo build --release
+      - echo "✅ Build complete"
+
+  run:
+    desc: Run API locally
+    dir: "{{.API_DIR}}"
+    cmds:
+      - echo "🚀 Starting API..."
+      - RUST_LOG=info cargo run
+
+  clean:
+    desc: Clean build artifacts
+    dir: "{{.API_DIR}}"
+    cmds:
+      - echo "🧹 Cleaning build artifacts..."
+      - cargo clean
+      - echo "✅ Cleanup complete"
+
+  docker:build:
+    desc: Build Docker images
+    cmds:
+      - echo "🐳 Building Docker images..."
+      - docker-compose build
+      - echo "✅ Docker build complete"
+
+  docker:up:
+    desc: Start Docker services
+    cmds:
+      - echo "🐳 Starting Docker services..."
+      - docker-compose up -d
+      - echo "✅ Services started"
+
+  docker:down:
+    desc: Stop Docker services
+    cmds:
+      - echo "🐳 Stopping Docker services..."
+      - docker-compose down
+      - echo "✅ Services stopped"
+
+  docker:wait-healthy:
+    desc: Wait for services to be healthy
+    cmds:
+      - echo "⏳ Waiting for API to be healthy..."
+      - |
+        TIMEOUT=60
+        elapsed=0
+        while [ $elapsed -lt $TIMEOUT ]; do
+          if curl -sf http://localhost:8080/health/healthz > /dev/null 2>&1; then
+            echo "✅ API is healthy"
+            exit 0
+          fi
+          sleep 2
+          elapsed=$((elapsed + 2))
+        done
+        echo "❌ Timeout waiting for API"
+        docker-compose logs api
+        exit 1
+
+  docker:ci:
+    desc: Full CI with Docker (build + deploy + test + cleanup)
+    cmds:
+      - echo "🐳 Running full Docker CI pipeline..."
+      - ./scripts/test-pipeline.sh
+      - echo "✅ Docker CI passed"
+
+  help:
+    desc: Show available tasks
+    cmds:
+      - task --list
