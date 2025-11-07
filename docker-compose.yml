@@ -20,6 +20,19 @@ services:
       timeout: 5s
       retries: 5
 
+  # PGWEB - PostgreSQL Web UI
+  pgweb:
+    image: sosedoff/pgweb
+    container_name: rapidfab-pgweb
+    ports:
+      - "8081:8081"
+    environment:
+      DATABASE_URL: postgres://rapidfab:rapidfab-dev@postgres:5432/rapidfab?sslmode=disable
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   # Redis (stub for M2 - queue)
   redis:
     image: redis:7-alpine
