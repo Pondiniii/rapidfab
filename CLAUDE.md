@@ -127,7 +127,56 @@ sleep 10
 make test-unit          # Unit tests
 make test-integration   # Integration tests
 make test-all           # All tests
+make test-pipeline      # Full E2E pipeline (Docker containers)
 ```
+
+### Test Pipeline (Prod-like Container Testing)
+
+**Cel:** Testowanie całej usługi jako kontenery Docker (prod-like environment).
+
+**Skrypt:** `scripts/test-pipeline.sh`
+
+**Kroki:**
+1. **Cleanup** - `docker-compose down -v --remove-orphans`
+2. **Build** - Kompilacja obrazów Docker (compilation pipeline)
+3. **Deploy** - `docker-compose up -d` (deployment pipeline)
+4. **Health checks** - Czekanie na gotowość API
+5. **E2E tests** - Uruchomienie wszystkich testów z `tests/e2e/*.sh`
+6. **Cleanup** - Posprzątanie kontenerów i volumes
+
+**Uruchomienie:**
+```bash
+# Pełny pipeline (build + deploy + test + cleanup)
+make test-pipeline
+
+# Alternatywnie bezpośrednio
+./scripts/test-pipeline.sh
+```
+
+**Output:**
+```
+=== RapidFab Testing Pipeline ===
+[1/5] Cleanup previous containers... ✓
+[2/5] Building Docker images (compilation pipeline)... ✓
+[3/5] Starting services (deployment pipeline)... ✓
+[4/5] Running E2E tests...
+  Running: auth_flow_test.sh ✓ PASSED
+[5/5] Cleanup... ✓
+
+=== Test Results ===
+Passed: 1
+Failed: 0
+✓ All tests passed!
+```
+
+**Kiedy używać:**
+- Po zakończeniu pracy agenta (weryfikacja przed commit)
+- Przed git push (upewnienie się że deployment działa)
+- Przy dodawaniu nowych testów E2E (automatycznie wykrywa `tests/e2e/*.sh`)
+- Debugging problemów z docker-compose
+
+**Dodawanie nowych testów:**
+Wystarczy dodać plik `tests/e2e/new_test.sh` - script automatycznie go znajdzie i uruchomi.
 
 ### CI/CD Pipeline
 **Lokalizacja:** `.github/workflows/ci.yml`
@@ -168,6 +217,10 @@ cd services/api && cargo test
 # Full E2E test (10 min)
 docker-compose up -d
 ./tests/e2e/auth_flow_test.sh
+
+# Full pipeline test - RECOMMENDED (prod-like, 3-5 min)
+make test-pipeline
+# Testuje: compilation + deployment + E2E + cleanup
 
 # Watch mode (development)
 cd services/api
