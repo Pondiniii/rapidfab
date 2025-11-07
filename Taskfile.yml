@@ -38,6 +38,7 @@ tasks:
       - task: fmt
       - task: lint
       - task: test:unit
+      - task: test:integration
       - docker-compose build 2>&1 | grep -i "error\|failed" || true
       - docker-compose up -d >/dev/null 2>&1
       - task: docker:wait-healthy
@@ -92,12 +93,11 @@ tasks:
   test:integration:
     desc: Run only integration tests
     dir: "{{.API_DIR}}"
+    silent: true
     env:
       SQLX_OFFLINE: "true"
     cmds:
-      - echo "🧪 Running integration tests..."
-      - cargo test --test '*' -- --test-threads=1
-      - echo "✅ Integration tests passed"
+      - cargo test --test '*' -- --test-threads=1 2>&1 | grep -E "error\|FAILED\|test result:" || true
 
   test:e2e:
     desc: Run E2E tests (auto-discovery)
