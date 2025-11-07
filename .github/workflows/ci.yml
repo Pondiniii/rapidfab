@@ -162,7 +162,7 @@ jobs:
           cargo build --release
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: rapidfab-api-binary
           path: services/api/target/release/rapidfab-api
