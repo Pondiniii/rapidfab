@@ -1,10 +1,15 @@
 // Upload Service - File upload management and S3 integration
 
+mod auth;
+mod config;
+
 use axum::{routing::get, Json, Router};
 use serde::Serialize;
 use std::net::SocketAddr;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+use crate::config::Config;
 
 #[derive(Serialize)]
 struct HealthResponse {
@@ -31,8 +36,11 @@ async fn main() -> anyhow::Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    // Load environment variables
-    dotenvy::dotenv().ok();
+    // Load configuration
+    let config = Config::from_env()?;
+
+    // Log masked config (hides secrets)
+    info!("Upload service configuration loaded: {:?}", config.masked());
 
     // Build router
     let app = Router::new().route("/health", get(health));
@@ -44,13 +52,9 @@ async fn main() -> anyhow::Result<()> {
     //   GET /internal/upload/file/{id}/read-url
 
     // Start server
-    let host = std::env::var("UPLOAD_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
-    let port = std::env::var("UPLOAD_PORT")
-        .unwrap_or_else(|_| "8082".to_string())
-        .parse::<u16>()?;
-    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    let addr = SocketAddr::from(([0, 0, 0, 0], config.port));
 
-    info!("Starting upload service on {}:{}", host, port);
+    info!("Starting upload service on {}:{}", config.host, config.port);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;

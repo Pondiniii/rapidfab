@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS files (
     s3_key VARCHAR(512) NOT NULL UNIQUE,
     size_bytes BIGINT NOT NULL CHECK (size_bytes > 0),
     mime_type VARCHAR(100),
+    sha256_hash VARCHAR(64), -- For deduplication (hex-encoded SHA256)
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
