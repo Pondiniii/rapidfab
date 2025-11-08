@@ -137,7 +137,7 @@ tasks:
     env:
       SQLX_OFFLINE: "true"
     cmds:
-      - cargo test --test '*' -- --ignored --test-threads=1
+      - cargo test --test '*' -- --test-threads=1
 
   test:e2e:
     desc: Run E2E tests (auto-discovery)

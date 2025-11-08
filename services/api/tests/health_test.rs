@@ -1,6 +1,6 @@
 //! Health Endpoint Integration Tests
 //!
-//! These tests are marked with `#[ignore]` and are NOT run during CI.
+//! These tests are run during CI after Docker services start.
 //!
 //! ## Why ignored?
 //! - Require running server (http://localhost:8080)
@@ -23,7 +23,6 @@ mod tests {
     const BASE_URL: &str = "http://localhost:8080";
 
     #[tokio::test]
-    #[ignore] // Requires running server
     async fn test_healthz_returns_healthy_status() {
         let res = reqwest::get(format!("{BASE_URL}/health/healthz"))
             .await
@@ -45,7 +44,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore] // Requires running server
     async fn test_readyz_checks_database() {
         let res = reqwest::get(format!("{BASE_URL}/health/readyz"))
             .await
@@ -63,7 +61,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore] // Requires running server
     async fn test_metrics_endpoint_returns_prometheus_format() {
         let res = reqwest::get(format!("{BASE_URL}/metrics"))
             .await
@@ -98,7 +95,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore] // Requires running server
     async fn test_metrics_track_requests() {
         // Make a request to healthz
         let _ = reqwest::get(format!("{BASE_URL}/health/healthz"))
