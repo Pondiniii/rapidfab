@@ -32,13 +32,21 @@ async fn main() -> anyhow::Result<()> {
     db::run_migrations(&pool).await?;
     tracing::info!("Database migrations completed");
 
+    // Upload service configuration
+    let upload_service_url =
+        std::env::var("UPLOAD_SERVICE_URL").unwrap_or_else(|_| "http://upload:8082".to_string());
+    let upload_url = Arc::new(app::upload::routes::UploadServiceUrl(upload_service_url));
+    tracing::info!(upload_url = %upload_url.0, "Upload service configured");
+
     // Build application router
     let app = Router::new()
         .nest("/auth", app::auth::routes::router())
         .nest("/users", app::users::routes::router())
+        .nest("/files", app::upload::routes::router())
         .nest("/health", app::health::routes::router())
         .merge(app::metrics::routes::router())
         .layer(Extension(Arc::new(pool)))
+        .layer(Extension(upload_url))
         .layer(middleware::from_fn(
             rapidfab_api::middleware::metrics::track_metrics,
         ));
