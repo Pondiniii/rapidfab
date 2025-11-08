@@ -26,7 +26,7 @@ pub async fn init_upload(
     let ticket = validate_ticket(token, &state.ticket_secret).map_err(|e| {
         error_response(
             StatusCode::UNAUTHORIZED,
-            &format!("invalid ticket: {}", e),
+            &format!("invalid ticket: {e}"),
         )
     })?;
 
