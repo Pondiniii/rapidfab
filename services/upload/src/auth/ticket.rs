@@ -57,7 +57,7 @@ pub fn validate_ticket(token: &str, secret: &str) -> Result<UploadTicket> {
     // TODO: Implement JWT validation with EdDSA signature
     // For now, use basic HMAC (can upgrade to EdDSA later)
 
-    use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
+    use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 
     let mut validation = Validation::new(Algorithm::HS256);
     validation.validate_exp = false; // We check manually via ticket.is_expired()

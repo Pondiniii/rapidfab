@@ -6,7 +6,10 @@ mod config;
 mod metrics;
 mod storage;
 
-use axum::{routing::{get, post}, Json, Router};
+use axum::{
+    routing::{get, post},
+    Json, Router,
+};
 use serde::Serialize;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -54,8 +57,7 @@ async fn main() -> anyhow::Result<()> {
     // Initialize tracing
     tracing_subscriber::registry()
         .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info".into()),
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -95,11 +97,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Create upload service
-    let upload_service = Arc::new(UploadService::new(
-        db_pool.clone(),
-        s3_client,
-        quota_limits,
-    ));
+    let upload_service = Arc::new(UploadService::new(db_pool.clone(), s3_client, quota_limits));
 
     // Create app state
     let app_state = AppState {
@@ -125,7 +123,10 @@ async fn main() -> anyhow::Result<()> {
             "/internal/upload/file/:id/read-url",
             get(handlers::generate_read_url),
         )
-        .route("/internal/upload/transfer", post(handlers::transfer_uploads))
+        .route(
+            "/internal/upload/transfer",
+            post(handlers::transfer_uploads),
+        )
         .with_state(app_state);
 
     // Start server

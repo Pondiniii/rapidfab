@@ -23,12 +23,8 @@ pub async fn init_upload(
         .and_then(|v| v.to_str().ok())
         .ok_or_else(|| error_response(StatusCode::UNAUTHORIZED, "missing upload ticket"))?;
 
-    let ticket = validate_ticket(token, &state.ticket_secret).map_err(|e| {
-        error_response(
-            StatusCode::UNAUTHORIZED,
-            &format!("invalid ticket: {e}"),
-        )
-    })?;
+    let ticket = validate_ticket(token, &state.ticket_secret)
+        .map_err(|e| error_response(StatusCode::UNAUTHORIZED, &format!("invalid ticket: {e}")))?;
 
     // Get IP
     let ip = headers

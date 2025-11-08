@@ -37,7 +37,8 @@ impl S3Client {
             .load()
             .await;
 
-        let s3_config = aws_sdk_s3::Config::from(&config).to_builder()
+        let s3_config = aws_sdk_s3::Config::from(&config)
+            .to_builder()
             .force_path_style(true) // Required for Hetzner S3
             .build();
 
@@ -63,8 +64,7 @@ impl S3Client {
             bail!("invalid s3 key: contains '..'");
         }
 
-        let presigning_config =
-            PresigningConfig::expires_in(Duration::from_secs(expires_in_secs))?;
+        let presigning_config = PresigningConfig::expires_in(Duration::from_secs(expires_in_secs))?;
 
         let presigned_request = self
             .client
@@ -89,8 +89,7 @@ impl S3Client {
             bail!("invalid s3 key: contains '..'");
         }
 
-        let presigning_config =
-            PresigningConfig::expires_in(Duration::from_secs(expires_in_secs))?;
+        let presigning_config = PresigningConfig::expires_in(Duration::from_secs(expires_in_secs))?;
 
         let presigned_request = self
             .client
@@ -196,7 +195,7 @@ mod tests {
         // These would be caught early in the validation
         assert!("../../../etc/passwd".contains(".."));
         assert!("../evil".contains(".."));
-        assert!("safe/path/file.txt".contains("..") == false);
+        assert!(!"safe/path/file.txt".contains(".."));
 
         // The actual validation happens in the methods before S3 calls
         // This test verifies the logic we use for validation
@@ -214,11 +213,11 @@ mod tests {
         ];
 
         for path in malicious_paths {
-            assert!(path.contains(".."), "Should detect '..' in {}", path);
+            assert!(path.contains(".."), "Should detect '..' in {path}");
         }
 
         for path in safe_paths {
-            assert!(!path.contains(".."), "Should not detect '..' in {}", path);
+            assert!(!path.contains(".."), "Should not detect '..' in {path}");
         }
     }
 }

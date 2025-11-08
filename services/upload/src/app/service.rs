@@ -5,8 +5,7 @@ use uuid::Uuid;
 
 use crate::auth::UploadTicket;
 use crate::storage::{
-    check_anon_quota, check_user_quota, update_anon_quota, update_user_quota, QuotaLimits,
-    S3Client,
+    check_anon_quota, check_user_quota, update_anon_quota, update_user_quota, QuotaLimits, S3Client,
 };
 
 use super::dto::*;
@@ -148,8 +147,7 @@ impl UploadService {
         // Generate URLs
         let mut urls = Vec::new();
         let expires_in = 3600; // 1 hour
-        let expires_at =
-            (Utc::now() + chrono::Duration::seconds(expires_in as i64)).to_rfc3339();
+        let expires_at = (Utc::now() + chrono::Duration::seconds(expires_in as i64)).to_rfc3339();
 
         for file in files {
             let upload_url = self
@@ -266,8 +264,7 @@ impl UploadService {
             .s3_client
             .generate_download_url(&file.s3_key, expires_in)
             .await?;
-        let expires_at =
-            (Utc::now() + chrono::Duration::seconds(expires_in as i64)).to_rfc3339();
+        let expires_at = (Utc::now() + chrono::Duration::seconds(expires_in as i64)).to_rfc3339();
 
         Ok(ReadUrlResponse { url, expires_at })
     }
@@ -322,13 +319,10 @@ impl UploadService {
                     .unwrap_or("bin");
 
                 // Build new user key
-                let new_s3_key =
-                    S3Client::build_user_key(&user_id, &file.id.to_string(), ext);
+                let new_s3_key = S3Client::build_user_key(&user_id, &file.id.to_string(), ext);
 
                 // Move in S3 (copy + delete)
-                self.s3_client
-                    .move_file(&file.s3_key, &new_s3_key)
-                    .await?;
+                self.s3_client.move_file(&file.s3_key, &new_s3_key).await?;
 
                 // Update DB with new key
                 sqlx::query!(
@@ -427,8 +421,7 @@ mod tests {
         let ticket_limit: u64 = 1000;
 
         let expected_msg = format!(
-            "file '{}' size ({} bytes) exceeds ticket limit ({} bytes)",
-            filename, file_size, ticket_limit
+            "file '{filename}' size ({file_size} bytes) exceeds ticket limit ({ticket_limit} bytes)"
         );
 
         // Verify the error message provides clear information
@@ -437,4 +430,3 @@ mod tests {
         assert!(expected_msg.contains("1000 bytes"));
     }
 }
-

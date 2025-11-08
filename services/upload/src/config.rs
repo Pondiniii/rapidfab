@@ -40,12 +40,12 @@ pub struct UploadLimits {
     pub max_file_mb: u64, // Default: 500MB
 
     // Quota limits
-    pub quota_anon_daily_mb: u64, // Default: 100MB
+    pub quota_anon_daily_mb: u64,   // Default: 100MB
     pub quota_user_monthly_gb: u64, // Default: 20GB
 
     // Rate limits
     pub user_hourly_gb: u64, // Default: 2GB/hour for authenticated users
-    pub ip_daily_mb: u64, // Default: 500MB/day per IP (anonymous)
+    pub ip_daily_mb: u64,    // Default: 500MB/day per IP (anonymous)
 
     // TTL
     pub anon_ttl_days: u32, // Default: 7 days
