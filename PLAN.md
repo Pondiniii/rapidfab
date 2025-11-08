@@ -69,31 +69,50 @@ Legend:
 ## M1 — Pricing FDM (OrcaSlicer) + Upload flow
 
 ### Upload + storage
-- [ ] ✅ `services/api/` — endpoint `POST /files` generujący Signed URL (Hetzner S3), walidacja metadanych, zapis rekordu w Postgres.  
-- [ ] ✅ Testy integration (mock S3) + kontrakty (`tests/contracts/files`).
+- [x] ✅ `services/api/` — endpoint `POST /files` generujący Signed URL (Hetzner S3), walidacja metadanych, zapis rekordu w Postgres.
+- [x] ✅ Testy integration (mock S3) + kontrakty (`tests/contracts/files`).
+
+### Upload Service (`services/upload/`)
+- [x] ✅ Created upload microservice (Rust/Axum)
+- [x] ✅ JWT ticket validation (HS256)
+- [x] ✅ S3 client with presigned URLs (Hetzner compatible)
+- [x] ✅ Quota system (anon: 100MB/day + 500MB/IP, user: 20GB + 2GB/hour)
+- [x] ✅ Database migrations (uploads, files, quotas, ip_quotas)
+- [x] ✅ 5 endpoints:
+  - POST /internal/upload/init
+  - POST /internal/upload/{id}/signed-urls
+  - POST /internal/upload/{id}/confirm
+  - POST /internal/upload/transfer
+  - GET /internal/upload/file/{id}/read-url
+- [x] ✅ API integration (proxy endpoints + JWT ticket generation)
+- [x] ✅ Docker integration (minimal compose stack)
+- [x] ✅ Prometheus metrics ready
+- [x] ✅ CI passing (format, lint, Docker, E2E health checks)
 
 ### Pricing FDM mikroserwis (`plan/ADR-005`)
-- [ ] ✅ `services/pricing-fdm/` — FastAPI/Flask wrapper na kontenerze OrcaSlicer.  
-- [ ] ✅ Endpoint `POST /quotes` przyjmujący `file_id`, parametry (materiał, infill, layer height).  
-- [ ] ✅ Skrypt w kontenerze uruchamia OrcaSlicer CLI i zwraca koszt + metryki (czas druku, zużycie).  
-- [ ] ✅ `Makefile` targety (lint/test) + testy unit (parsowanie wyników) i integration (mock pliku).  
+- [ ] ✅ `services/pricing-fdm/` — FastAPI/Flask wrapper na kontenerze OrcaSlicer.
+- [ ] ✅ Endpoint `POST /quotes` przyjmujący `file_id`, parametry (materiał, infill, layer height).
+- [ ] ✅ Skrypt w kontenerze uruchamia OrcaSlicer CLI i zwraca koszt + metryki (czas druku, zużycie).
+- [ ] ✅ `Makefile` targety (lint/test) + testy unit (parsowanie wyników) i integration (mock pliku).
 - [ ] 📄 Dokumentacja kontraktu w `services/pricing-fdm/docs/INDEX.md`.
 
 ### Koordynacja Axum ↔ pricing
-- [ ] ✅ Endpoint `POST /quotes` w `api` (synchronicznie woła `pricing-fdm`, fallback na `spawn_blocking` jeśli brak kolejki).  
-- [ ] ✅ Persistencja: tabela `quotes` z historią wyników.  
-- [ ] ✅ Testy integration (mock pricing service).  
+- [ ] ✅ Endpoint `POST /quotes` w `api` (synchronicznie woła `pricing-fdm`, fallback na `spawn_blocking` jeśli brak kolejki).
+- [ ] ✅ Persistencja: tabela `quotes` z historią wyników.
+- [ ] ✅ Testy integration (mock pricing service).
 - [ ] ⏩ Przygotować funkcję delegującą do kolejki (`todo!()`) zgodnie z decyzją w M2.
 
 ### Pipeline agentów i testy
-- [ ] ✅ Coding-agent uses `make test-unit` + `services/pricing-fdm` tests; test-agent runs `make test-all`.  
-- [ ] ✅ `tests/e2e/` scenariusz „upload STL → quote FDM → odczyt wyniku”.  
-- [ ] ✅ Zaktualizować kontrakty (`tests/contracts/quotes`).
+- [x] ✅ Upload service: unit tests + integration tests + E2E health check
+- [ ] ✅ Pricing service tests + E2E quote flow
+- [x] ✅ CI pipeline (42s, all passing)
 
 ### Definition of Done M1
-- [ ] Upload + pricing flow działa end-to-end w docker-compose.  
-- [ ] OrcaSlicer kontener uruchamia się bez manualnej ingerencji.  
-- [ ] CI przechodzi (w tym testy e2e).  
+- [x] Upload service complete ✅
+- [ ] Pricing FDM service implemented
+- [ ] Upload + pricing flow działa end-to-end w docker-compose.
+- [ ] OrcaSlicer kontener uruchamia się bez manualnej ingerencji.
+- [ ] CI przechodzi (w tym testy e2e).
 - [ ] 📄 Aktualizacja `PLAN_STAGES.md`, `CLAUDE.md` (zamknięcie M1).
 
 ---

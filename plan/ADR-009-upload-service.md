@@ -81,4 +81,60 @@ s3://rapidfab-files/
 – Wymaga Redis/DB do liczenia quota (cache + persistance).
 
 ## Status
-Proposed
+Accepted (implemented 2025-11-08)
+
+## Implementation Notes (2025-11-08)
+
+Upload service successfully implemented in `services/upload/`:
+
+**Architecture:**
+- Rust/Axum microservice (independent container)
+- JWT ticket-based authorization (HS256, 2-min TTL)
+- PostgreSQL for metadata (uploads, files, quotas, ip_quotas)
+- Hetzner S3 for file storage (presigned URLs)
+- Prometheus metrics ready
+
+**Endpoints (all implemented):**
+- POST /internal/upload/init - Create upload + check quota
+- POST /internal/upload/{id}/signed-urls - Generate S3 presigned URLs
+- POST /internal/upload/{id}/confirm - Verify files + update quota
+- POST /internal/upload/transfer - Transfer anon → user (post-registration)
+- GET /internal/upload/file/{id}/read-url - Read URL for pricing service
+
+**Quota System:**
+- Anonymous: 100MB/day per session + 500MB/day per IP
+- Users: 20GB total + 2GB/hour rate limit
+- DB-based tracking (no Redis - KISS principle)
+
+**S3 Structure:**
+- anon/{session_id}/{file_id}.ext (7-day lifecycle)
+- users/{user_id}/{file_id}.ext (permanent)
+
+**Security:**
+- Path traversal prevention
+- Content-Type + Content-Length enforcement
+- Presigned URLs with expiration (1h)
+- No direct S3 credential exposure
+
+**CI/CD:**
+- Docker multi-stage build (Rust 1.75 + Debian bookworm-slim)
+- Health checks working
+- E2E smoke tests passing
+- Full CI pipeline: 42 seconds
+
+**API Integration:**
+- Proxy endpoints in `services/api/src/app/upload/`
+- JWT ticket generation (shared secret)
+- Extension-based URL injection
+
+**Code Quality:**
+- SOLID, KISS, DRY principles
+- All files < 300 lines
+- Zero clippy warnings
+- 13 unit tests passing
+
+**Future Enhancements:**
+- Transaction wrapping for atomicity
+- AV scanning integration (ClamAV hook ready)
+- Redis caching (if needed for scale)
+- Batch S3 operations

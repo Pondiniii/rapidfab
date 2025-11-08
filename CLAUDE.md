@@ -267,3 +267,14 @@ cd services/api && RUST_LOG=debug cargo test -- --nocapture
 - **Strategia testów:** `plan/PRD-002-testing-strategy.md`
 
 ---
+
+## Recent Milestones
+
+### 2025-11-08: Upload Service Complete
+- Implemented upload microservice (services/upload/)
+- 5 endpoints, quota system, S3 integration
+- ADR-009 accepted and deployed
+- CI passing, Docker ready
+- Next: Pricing FDM service (M1)
+
+---
