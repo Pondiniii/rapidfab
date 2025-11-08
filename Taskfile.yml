@@ -6,6 +6,7 @@ version: '3'
 
 vars:
   API_DIR: services/api
+  UPLOAD_DIR: services/upload
   TESTS_DIR: tests
   E2E_DIR: tests/e2e
 
@@ -20,14 +21,15 @@ tasks:
     summary: |
       Runs complete CI pipeline (SILENT MODE - only shows failures):
       1. Stop Docker if running
-      2. Format check (cargo fmt)
-      3. Linter (cargo clippy)
-      4. Unit tests (cargo test --lib)
-      5. Build Docker images
-      6. Deploy Docker stack
-      7. Wait for services healthy
-      8. E2E tests (auto-discovered from tests/e2e/*_test.sh)
-      9. Cleanup Docker
+      2. Format check (API + Upload services)
+      3. Linter (API + Upload services)
+      4. Unit tests (API + Upload services)
+      5. Integration tests (API only)
+      6. Build Docker images
+      7. Deploy Docker stack
+      8. Wait for services healthy
+      9. E2E tests (auto-discovered from tests/e2e/*_test.sh)
+      10. Cleanup Docker
 
       Exit code: 0 = all passed, non-zero = failures
       AGENTS CANNOT COMMIT IF THIS FAILS!
@@ -36,10 +38,13 @@ tasks:
       - echo "🚀 Running CI..."
       - docker-compose -f docker-compose.minimal.yml down 2>/dev/null || true
       - task: fmt
+      - task: fmt:upload
       - task: lint
+      - task: lint:upload
       - task: test:unit
+      - task: test:unit:upload
       - task: test:integration
-      - docker-compose -f docker-compose.minimal.yml build 2>&1 | grep -i "error\|failed" || true
+      - docker-compose -f docker-compose.minimal.yml build
       - docker-compose -f docker-compose.minimal.yml up -d >/dev/null 2>&1
       - task: docker:wait-healthy
       - task: test:e2e
@@ -64,11 +69,11 @@ tasks:
   lint:
     desc: Run linter (clippy)
     dir: "{{.API_DIR}}"
-    silent: true
+    silent: false
     env:
       SQLX_OFFLINE: "true"
     cmds:
-      - cargo clippy --all-targets -- -D warnings 2>&1 | grep -v "Finished\|Checking" || true
+      - cargo clippy --all-targets -- -D warnings
 
   test:
     desc: Run Rust tests (unit + integration)
@@ -84,26 +89,51 @@ tasks:
   test:unit:
     desc: Run only unit tests
     dir: "{{.API_DIR}}"
-    silent: true
+    silent: false
     env:
       SQLX_OFFLINE: "true"
     cmds:
-      - cargo test --lib --bins 2>&1 | grep -E "error\|FAILED\|test result:" || true
+      - cargo test --lib --bins
 
   test:integration:
     desc: Run only integration tests
     dir: "{{.API_DIR}}"
-    silent: true
+    silent: false
     env:
       SQLX_OFFLINE: "true"
     cmds:
-      - cargo test --test '*' -- --test-threads=1 2>&1 | grep -E "error\|FAILED\|test result:" || true
+      - cargo test --test '*' -- --test-threads=1
+
+  fmt:upload:
+    desc: Check code formatting (upload service)
+    dir: "{{.UPLOAD_DIR}}"
+    silent: true
+    cmds:
+      - cargo fmt --all -- --check
+
+  lint:upload:
+    desc: Run linter (upload service)
+    dir: "{{.UPLOAD_DIR}}"
+    silent: false
+    env:
+      SQLX_OFFLINE: "true"
+    cmds:
+      - cargo clippy --all-targets -- -D warnings
+
+  test:unit:upload:
+    desc: Run unit tests (upload service)
+    dir: "{{.UPLOAD_DIR}}"
+    silent: false
+    env:
+      SQLX_OFFLINE: "true"
+    cmds:
+      - cargo test --lib --bins
 
   test:e2e:
     desc: Run E2E tests (auto-discovery)
-    silent: true
+    silent: false
     cmds:
-      - ./tests/test-e2e.sh 2>&1 | grep -E "FAILED|❌|Error|Failed" || true
+      - ./tests/test-e2e.sh
 
   build:
     desc: Build API in release mode
