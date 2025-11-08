@@ -91,5 +91,38 @@ services:
       timeout: 3s
       retries: 5
 
+  # FDM Pricing Service
+  pricing-fdm:
+    build:
+      context: ./services/pricing-fdm
+      dockerfile: Containerfile
+    environment:
+      - PRICING_FDM_HOST=0.0.0.0
+      - PRICING_FDM_PORT=8083
+      - ORCA_PROFILES_DIR=/app/profiles
+      - ORCA_BINARY=orca-slicer
+      - TEMP_DIR=/tmp/pricing-fdm
+      - BASE_FEE_USD=${BASE_FEE_USD:-5.00}
+      - MACHINE_RATE_USD_PER_HOUR=${MACHINE_RATE_USD_PER_HOUR:-10.00}
+      - MARGIN_MULTIPLIER=${MARGIN_MULTIPLIER:-1.30}
+      - MATERIAL_PLA_COST_PER_G=${MATERIAL_PLA_COST_PER_G:-0.02}
+      - MATERIAL_ABS_COST_PER_G=${MATERIAL_ABS_COST_PER_G:-0.025}
+      - MATERIAL_PETG_COST_PER_G=${MATERIAL_PETG_COST_PER_G:-0.03}
+      - MATERIAL_ABS_ESD_COST_PER_G=${MATERIAL_ABS_ESD_COST_PER_G:-0.035}
+      - MATERIAL_ASA_COST_PER_G=${MATERIAL_ASA_COST_PER_G:-0.028}
+      - MATERIAL_NYLON_COST_PER_G=${MATERIAL_NYLON_COST_PER_G:-0.04}
+      - MATERIAL_PC_COST_PER_G=${MATERIAL_PC_COST_PER_G:-0.045}
+      - MATERIAL_TPU_COST_PER_G=${MATERIAL_TPU_COST_PER_G:-0.035}
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-100}
+      - REQUEST_TIMEOUT_SECS=${REQUEST_TIMEOUT_SECS:-60}
+      - RUST_LOG=info
+    ports:
+      - "8083:8083"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
 volumes:
   postgres-data:

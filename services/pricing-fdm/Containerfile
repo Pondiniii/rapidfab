@@ -1,0 +1,70 @@
+# Stage 1: Build Rust binary
+FROM rust:alpine AS builder
+
+RUN apk add --no-cache musl-dev pkgconfig openssl-dev openssl-libs-static
+
+WORKDIR /app
+
+# Layer 1: Dependencies (cached until Cargo.toml changes)
+COPY Cargo.toml Cargo.lock ./
+RUN mkdir src && \
+    echo "fn main() {}" > src/main.rs && \
+    cargo build --release && \
+    rm -rf src
+
+# Layer 2: Application code
+COPY src ./src
+RUN rm -rf target/release/pricing-fdm target/release/deps/pricing_fdm* && \
+    cargo build --release
+
+# Stage 2: Runtime with OrcaSlicer
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    xvfb \
+    libglib2.0-0 \
+    libgl1-mesa-glx \
+    libgomp1 \
+    unzip \
+    curl \
+    ca-certificates \
+    libgcc1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and extract OrcaSlicer AppImage
+RUN wget -q https://github.com/SoftFever/OrcaSlicer/releases/download/v2.3.1/OrcaSlicer_Linux_AppImage_Ubuntu2404_V2.3.1.AppImage \
+    -O /tmp/orca.appimage && \
+    chmod +x /tmp/orca.appimage && \
+    cd /tmp && \
+    ./orca.appimage --appimage-extract && \
+    mv squashfs-root /opt/orcaslicer && \
+    ln -s /opt/orcaslicer/AppRun /usr/local/bin/orca-slicer && \
+    rm /tmp/orca.appimage
+
+WORKDIR /app
+
+# Copy Rust binary from builder
+COPY --from=builder /app/target/release/pricing-fdm /app/pricing-fdm
+
+# Copy Orca profiles
+COPY profiles /app/profiles
+
+# Create temp directory
+RUN mkdir -p /tmp/pricing-fdm && chmod 777 /tmp/pricing-fdm
+
+# Environment
+ENV RUST_LOG=info
+ENV PRICING_FDM_HOST=0.0.0.0
+ENV PRICING_FDM_PORT=8083
+ENV ORCA_PROFILES_DIR=/app/profiles
+ENV ORCA_BINARY=orca-slicer
+ENV TEMP_DIR=/tmp/pricing-fdm
+
+EXPOSE 8083
+
+HEALTHCHECK --interval=10s --timeout=3s --retries=3 \
+    CMD curl -f http://localhost:8083/health || exit 1
+
+CMD ["/app/pricing-fdm"]
