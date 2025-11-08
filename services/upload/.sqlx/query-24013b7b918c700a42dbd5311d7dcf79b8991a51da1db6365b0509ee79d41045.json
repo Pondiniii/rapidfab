@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO uploads (id, user_id, session_id, ip_address, status)\n            VALUES ($1, $2, $3, $4, 'pending')\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "24013b7b918c700a42dbd5311d7dcf79b8991a51da1db6365b0509ee79d41045"
+}

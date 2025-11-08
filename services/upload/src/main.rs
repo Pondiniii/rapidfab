@@ -1,28 +1,27 @@
 // Upload Service - File upload management and S3 integration
 
+mod app;
 mod auth;
 mod config;
 mod metrics;
 mod storage;
 
-use axum::{routing::get, Json, Router};
+use axum::{routing::{get, post}, Json, Router};
 use serde::Serialize;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+use crate::app::handlers;
+use crate::app::service::UploadService;
 use crate::config::Config;
 use crate::storage::{QuotaLimits, S3Client};
 
-// Allow dead code until endpoints are implemented
-#[allow(dead_code)]
 #[derive(Clone)]
-struct AppState {
-    s3_client: Arc<S3Client>,
-    db_pool: sqlx::PgPool,
-    quota_limits: QuotaLimits,
-    config: Arc<Config>,
+pub struct AppState {
+    pub upload_service: Arc<UploadService>,
+    pub ticket_secret: String,
 }
 
 #[derive(Serialize)]
@@ -94,24 +93,37 @@ async fn main() -> anyhow::Result<()> {
         ip_daily_mb: config.limits.ip_daily_mb,
     };
 
-    // Create shared app state
-    let _app_state = AppState {
-        s3_client: Arc::new(s3_client),
-        db_pool,
+    // Create upload service
+    let upload_service = Arc::new(UploadService::new(
+        db_pool.clone(),
+        s3_client,
         quota_limits,
-        config: Arc::new(config.clone()),
+    ));
+
+    // Create app state
+    let app_state = AppState {
+        upload_service,
+        ticket_secret: config.upload_ticket_secret.clone(),
     };
 
     // Build router
     let app = Router::new()
         .route("/health", get(health))
-        .route("/metrics", get(metrics));
-    // TODO: Add upload routes with app_state:
-    //   POST /internal/upload/init
-    //   POST /internal/upload/{id}/signed-urls
-    //   POST /internal/upload/{id}/confirm
-    //   POST /internal/upload/transfer
-    //   GET /internal/upload/file/{id}/read-url
+        .route("/metrics", get(metrics))
+        .route("/internal/upload/init", post(handlers::init_upload))
+        .route(
+            "/internal/upload/:id/signed-urls",
+            post(handlers::generate_signed_urls),
+        )
+        .route(
+            "/internal/upload/:id/confirm",
+            post(handlers::confirm_upload),
+        )
+        .route(
+            "/internal/upload/file/:id/read-url",
+            get(handlers::generate_read_url),
+        )
+        .with_state(app_state);
 
     // Start server
     let addr = SocketAddr::from(([0, 0, 0, 0], config.port));

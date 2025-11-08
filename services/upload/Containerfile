@@ -19,6 +19,7 @@ RUN mkdir src && \
 # Layer 2: Build actual application
 COPY src ./src
 COPY migrations ./migrations
+COPY .sqlx ./.sqlx
 RUN rm -rf target/release/upload-service target/release/deps/upload_service* && cargo build --release
 
 # Stage 2: Runtime
