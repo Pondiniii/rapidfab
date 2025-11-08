@@ -1,13 +1,29 @@
+//! Security and Edge Case Integration Tests
+//!
+//! These tests are marked with `#[ignore]` and are NOT run during CI.
+//!
+//! ## Why ignored?
+//! - Require running server (http://localhost:8080)
+//! - CI runs these tests BEFORE Docker stack starts
+//! - Tests document API behavior for security edge cases
+//! - Manual testing recommended before production deployment
+//!
+//! ## How to run manually:
+//! ```bash
+//! # Start services first
+//! docker-compose -f docker-compose.minimal.yml up -d
+//!
+//! # Run security tests
+//! cargo test --test security_test -- --ignored --test-threads=1
+//! ```
+//!
+//! ## Security Notes:
+//! - Input validation is minimal by design
+//! - SQLx parameterized queries prevent SQL injection at driver level
+//! - Full validation should be added to business logic if stricter rules needed
+
 use reqwest::StatusCode;
 use serde_json::json;
-
-/// Security and edge case tests for authentication endpoints
-/// Requires PostgreSQL running on localhost:5432
-/// Run with: cargo test --test security_test -- --ignored
-///
-/// NOTE: These tests document API behavior with security considerations.
-/// Input validation is minimal by design - SQLx parameterized queries prevent SQL injection.
-/// Full validation should be added to business logic if stricter rules are needed.
 
 #[tokio::test]
 #[ignore]

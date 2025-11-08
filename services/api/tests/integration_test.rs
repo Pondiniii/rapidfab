@@ -1,8 +1,31 @@
+//! Integration Tests for Authentication Flow
+//!
+//! These tests are marked with `#[ignore]` and are NOT run during CI.
+//!
+//! ## Why ignored?
+//! - Require running server (http://localhost:8080)
+//! - CI runs these tests BEFORE Docker stack starts
+//! - Alternative: E2E bash tests in tests/e2e/ (run during CI)
+//!
+//! ## How to run manually:
+//! ```bash
+//! # Start services first
+//! docker-compose -f docker-compose.minimal.yml up -d
+//!
+//! # Run integration tests
+//! cargo test --test integration_test -- --ignored --test-threads=1
+//! ```
+//!
+//! ## Coverage Strategy:
+//! - Core auth flow: Covered by tests/e2e/auth_flow_test.sh (runs in CI)
+//! - Edge cases: Documented here for manual testing
+//! - See: tests/CLAUDE.md for testing philosophy
+
 use serde_json::json;
 
 /// Integration test for full authentication flow
 /// Requires PostgreSQL running on localhost:5432
-/// Run with: cargo test --test integration_test
+/// Run with: cargo test --test integration_test -- --ignored
 #[tokio::test]
 #[ignore] // Run only when explicitly requested
 async fn test_auth_flow() {

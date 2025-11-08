@@ -1,3 +1,21 @@
+//! Health Endpoint Integration Tests
+//!
+//! These tests are marked with `#[ignore]` and are NOT run during CI.
+//!
+//! ## Why ignored?
+//! - Require running server (http://localhost:8080)
+//! - CI runs these tests BEFORE Docker stack starts
+//! - Alternative: E2E bash tests (coming soon) or manual testing
+//!
+//! ## How to run manually:
+//! ```bash
+//! # Start services first
+//! docker-compose -f docker-compose.minimal.yml up -d
+//!
+//! # Run health tests
+//! cargo test --test health_test -- --ignored --test-threads=1
+//! ```
+
 #[cfg(test)]
 mod tests {
     use serde_json::Value;
