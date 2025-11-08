@@ -1,7 +1,7 @@
 version: '3.8'
 
 # Minimal stack for CI - fast, reliable, essential services only
-# For full dev stack with observability: docker-compose -f docker-compose.minimal.yml -f docker-compose.obs.yml up
+# Usage: docker-compose -f docker-compose.minimal.yml up
 
 services:
   # PostgreSQL Database

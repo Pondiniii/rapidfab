@@ -34,15 +34,16 @@ tasks:
     silent: true
     cmds:
       - echo "🚀 Running CI..."
-      - docker-compose down 2>/dev/null || true
+      - docker-compose -f docker-compose.minimal.yml down 2>/dev/null || true
       - task: fmt
       - task: lint
       - task: test:unit
       - task: test:integration
-      - docker-compose build 2>&1 | grep -i "error\|failed" || true
-      - docker-compose up -d >/dev/null 2>&1
+      - docker-compose -f docker-compose.minimal.yml build 2>&1 | grep -i "error\|failed" || true
+      - docker-compose -f docker-compose.minimal.yml up -d >/dev/null 2>&1
       - task: docker:wait-healthy
       - task: test:e2e
+      - docker-compose -f docker-compose.minimal.yml down -v >/dev/null 2>&1
       - echo "✅ CI passed"
 
   fmt:
@@ -148,6 +149,19 @@ tasks:
       - docker-compose down
       - echo "✅ Services stopped"
 
+  dev:
+    desc: Start full dev stack (minimal + observability)
+    cmds:
+      - echo "🚀 Starting dev stack..."
+      - docker-compose -f docker-compose.minimal.yml -f docker-compose.obs.yml up -d
+      - |
+        echo "✅ Services started"
+        echo "API http://localhost:8080"
+        echo "Upload http://localhost:8082"
+        echo "Grafana http://localhost:3000 (admin/admin)"
+        echo "Prometheus http://localhost:9090"
+        echo "PGWeb http://localhost:8081"
+
   docker:wait-healthy:
     desc: Wait for services to be healthy
     silent: true
@@ -156,14 +170,21 @@ tasks:
         TIMEOUT=60
         elapsed=0
         while [ $elapsed -lt $TIMEOUT ]; do
-          if curl -sf http://localhost:8080/health/healthz > /dev/null 2>&1; then
+          api_healthy=$(curl -sf http://localhost:8080/health/healthz > /dev/null 2>&1 && echo "ok" || echo "fail")
+          upload_healthy=$(curl -sf http://localhost:8082/health > /dev/null 2>&1 && echo "ok" || echo "fail")
+
+          if [ "$api_healthy" = "ok" ] && [ "$upload_healthy" = "ok" ]; then
             exit 0
           fi
+
           sleep 2
           elapsed=$((elapsed + 2))
         done
-        echo "❌ Timeout waiting for API"
-        docker-compose logs api
+
+        echo "❌ Timeout waiting for services"
+        echo "API status: $api_healthy"
+        echo "Upload status: $upload_healthy"
+        docker-compose -f docker-compose.minimal.yml logs
         exit 1
 
   help:

@@ -1,11 +1,13 @@
 # Multi-stage build for upload microservice
 
 # Stage 1: Build
-FROM rust:1.75-alpine AS builder
+FROM rust:alpine AS builder
 
-RUN apk add --no-cache musl-dev
+RUN apk add --no-cache musl-dev pkgconfig openssl-dev
 
 WORKDIR /app
+
+ENV SQLX_OFFLINE=true
 
 # Layer 1: Build dependencies only (cached until Cargo.toml changes)
 COPY Cargo.toml Cargo.lock ./
@@ -16,21 +18,26 @@ RUN mkdir src && \
 
 # Layer 2: Build actual application
 COPY src ./src
-RUN cargo clean -p upload-service && cargo build --release
+COPY migrations ./migrations
+RUN rm -rf target/release/upload-service target/release/deps/upload_service* && cargo build --release
 
 # Stage 2: Runtime
 FROM alpine:latest
 
-RUN apk add --no-cache ca-certificates libgcc
+RUN apk add --no-cache ca-certificates libgcc curl
 
 WORKDIR /app
 
 COPY --from=builder /app/target/release/upload-service .
+COPY --from=builder /app/migrations ./migrations
 
 ENV RUST_LOG=info
 ENV UPLOAD_HOST=0.0.0.0
 ENV UPLOAD_PORT=8082
 
 EXPOSE 8082
+
+HEALTHCHECK --interval=10s --timeout=3s --retries=3 \
+    CMD curl -f http://localhost:8082/health || exit 1
 
 CMD ["./upload-service"]

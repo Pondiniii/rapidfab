@@ -30,14 +30,18 @@ impl S3Client {
             "upload-service",
         );
 
-        let config = aws_sdk_s3::Config::builder()
+        let config = aws_config::defaults(aws_config::BehaviorVersion::latest())
             .endpoint_url(endpoint)
             .region(Region::new(region.to_string()))
             .credentials_provider(credentials)
+            .load()
+            .await;
+
+        let s3_config = aws_sdk_s3::Config::from(&config).to_builder()
             .force_path_style(true) // Required for Hetzner S3
             .build();
 
-        let client = Client::from_conf(config);
+        let client = Client::from_conf(s3_config);
 
         Ok(Self {
             client,
