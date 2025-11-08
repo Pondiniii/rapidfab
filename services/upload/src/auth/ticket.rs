@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
+use anyhow::{bail, Result};
 use chrono::{DateTime, Utc};
-use anyhow::{Result, bail};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UploadTicket {
@@ -12,6 +12,8 @@ pub struct UploadTicket {
     pub iat: i64, // issued at
 }
 
+// Allow dead code until endpoints are implemented
+#[allow(dead_code)]
 impl UploadTicket {
     pub fn is_expired(&self) -> bool {
         Utc::now() > self.expires_at
@@ -50,6 +52,7 @@ impl UploadTicket {
 
 /// Validate upload ticket from X-Upload-Ticket header
 /// Returns the ticket if valid, error otherwise
+#[allow(dead_code)]
 pub fn validate_ticket(token: &str, secret: &str) -> Result<UploadTicket> {
     // TODO: Implement JWT validation with EdDSA signature
     // For now, use basic HMAC (can upgrade to EdDSA later)

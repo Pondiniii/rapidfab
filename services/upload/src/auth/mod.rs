@@ -1,3 +1,5 @@
 pub mod ticket;
 
-pub use ticket::{UploadTicket, validate_ticket};
+// Allow unused until endpoints are implemented
+#[allow(unused_imports)]
+pub use ticket::{validate_ticket, UploadTicket};

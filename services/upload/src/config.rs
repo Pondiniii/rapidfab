@@ -1,6 +1,8 @@
 use anyhow::Result;
 use serde::Deserialize;
 
+// Allow dead code until all features are implemented
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     // Service
@@ -29,6 +31,8 @@ pub struct S3Config {
     pub secret_access_key: String,
 }
 
+// Allow dead code until all features are implemented
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct UploadLimits {
     // File size limit
@@ -105,6 +109,8 @@ impl Config {
     }
 }
 
+// Allow dead code until all features are implemented
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct MaskedConfig {
     pub host: String,
