@@ -1,0 +1,39 @@
+# Multi-stage build for microservice
+# TODO: Replace SERVICE_NAME with your service name
+
+# Stage 1: Build
+FROM rust:1.75-alpine AS builder
+
+RUN apk add --no-cache musl-dev
+
+WORKDIR /app
+
+# Layer 1: Build dependencies only (cached until Cargo.toml changes)
+COPY Cargo.toml Cargo.lock ./
+RUN mkdir src && \
+    echo "fn main() {}" > src/main.rs && \
+    cargo build --release && \
+    rm -rf src
+
+# Layer 2: Build actual application
+COPY src ./src
+RUN cargo clean -p SERVICE_NAME && cargo build --release
+
+# Stage 2: Runtime
+FROM alpine:latest
+
+RUN apk add --no-cache ca-certificates libgcc
+
+WORKDIR /app
+
+# TODO: Replace SERVICE_NAME with your binary name
+COPY --from=builder /app/target/release/SERVICE_NAME .
+
+ENV RUST_LOG=info
+ENV SERVICE_HOST=0.0.0.0
+ENV SERVICE_PORT=8080
+
+EXPOSE 8080
+
+# TODO: Replace SERVICE_NAME with your binary name
+CMD ["./SERVICE_NAME"]

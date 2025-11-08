@@ -107,6 +107,100 @@ Jeśli potrzebujesz więcej info → `tests/CLAUDE.md`
 
 ---
 
+## 🎯 TASK BATCHING - EFEKTYWNOŚĆ CONTEXT DLA AGENTÓW
+
+### TL;DR
+
+**Grupuj powiązane taski razem - context restore jest kosztowny!**
+
+### Dlaczego batching?
+
+**PROBLEM:** Każde wywołanie coding-agent = nowy context. Agent musi:
+- Przeczytać strukturę projektu
+- Zrozumieć zależności
+- Załadować mental model
+
+**KOSZT:** ~30-60s overhead + tokeny na każdy context switch
+
+**ROZWIĄZANIE:** Grupuj 3-5 logicznie powiązanych tasków w jeden batch.
+
+### Zasady grupowania
+
+**✅ DOBRZE (batch):**
+```
+Batch: "Implement S3 client + presigned URLs"
+Tasks:
+1. Create storage/s3_client.rs with S3Client struct
+2. Implement generate_presigned_put_url()
+3. Implement generate_presigned_get_url()
+4. Add unit tests for URL generation
+5. Update config.rs with S3 settings
+```
+
+**❌ ŹLE (pojedynczo):**
+```
+Task 1: Create storage/s3_client.rs
+[agent runs, exits]
+Task 2: Implement generate_presigned_put_url()
+[agent runs, exits - musi ponownie czytać s3_client.rs]
+Task 3: Add unit tests
+[agent runs, exits - musi znowu czytać kod]
+```
+
+### Kryteria batching
+
+Grupuj tasks jeśli mają:
+- **Wspólny plik/moduł** (np. wszystko w `storage/`)
+- **Wspólną domenę** (np. quota system: checker + DB + tests)
+- **Zależności sekwencyjne** (np. model → repository → endpoint)
+- **Wspólny test scope** (np. auth flow: login + logout + middleware + tests)
+
+**NIE** grupuj jeśli:
+- Tasks dotyczą różnych serwisów
+- Wymagają różnych agentów (coding vs senior-api-developer)
+- Są niezależne i mogą być parallel
+
+### Przykłady z projektu
+
+**Batch 1: Upload ticket validation + config**
+```
+1. Create src/auth/ticket.rs - validate JWT
+2. Add UPLOAD_TICKET_SECRET to config.rs
+3. Update .env.example with ticket settings
+4. Write unit tests for ticket validation
+```
+→ Wszystko w jednym contexcie, agent rozumie flow od początku do końca.
+
+**Batch 2: Quota system complete**
+```
+1. Create storage/quota.rs - quota checker logic
+2. Update DB migrations with quota tables
+3. Add Redis rate limiter integration
+4. Implement metrics (upload_rate_limit_hits_total)
+5. Write integration tests for quota enforcement
+```
+→ Cały quota system w jednym sesji, łatwiej zapewnić spójność.
+
+### Metryki
+
+**Pojedyncze taski:**
+- 5 tasks × (60s context + 120s work) = 15 minut
+- 5 × context overhead = marnowanie zasobów
+
+**Batched (5 tasks):**
+- 1 × (60s context + 600s work) = 11 minut
+- Oszczędność: ~25% czasu + mniej tokenów
+
+### Workflow dla agentów
+
+Gdy dostajesz liste tasków:
+1. **Zgrupuj** po module/domenie
+2. **Zweryfikuj** zależności (co musi być pierwsze)
+3. **Wykonaj batch** jako jedną sesję
+4. **Uruchom `task ci`** po całym batchu (nie po każdym tasku)
+
+---
+
 ## Styl kodowania
 - **Less is more**: preferuj krótkie moduły Rust (< 300 linii); jeśli rośnie → rozbij na podmoduły.
 - **SOLID / DRY / KISS**: brak powtórzeń, proste nazewnictwo (`verb_subject`), jawne interfejsy traits.

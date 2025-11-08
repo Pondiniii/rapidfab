@@ -13,6 +13,7 @@ Ten dokument to indeks decyzji i planów. Każdy wpis opisuje „Co robimy” i 
 - [PRD 002: Strategia testów](plan/PRD-002-testing-strategy.md) *(Proposed)*  
 - [ADR 007: Struktura katalogów](plan/ADR-007-project-structure.md) *(Proposed)*  
 - [ADR 008: Logging i observability (Loki Stack)](plan/ADR-008-logging-observability.md) *(Accepted)*  
+- [ADR 009: Upload service — bezpieczeństwo anonimów](plan/ADR-009-upload-service.md) *(Proposed)*  
 - [Szablon ADR](plan/ADR-template.md)
 
 ## Organizacja dokumentów
