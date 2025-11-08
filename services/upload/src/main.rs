@@ -22,6 +22,7 @@ use crate::storage::{QuotaLimits, S3Client};
 pub struct AppState {
     pub upload_service: Arc<UploadService>,
     pub ticket_secret: String,
+    pub internal_token: String,
 }
 
 #[derive(Serialize)]
@@ -104,6 +105,7 @@ async fn main() -> anyhow::Result<()> {
     let app_state = AppState {
         upload_service,
         ticket_secret: config.upload_ticket_secret.clone(),
+        internal_token: config.internal_service_token.clone(),
     };
 
     // Build router

@@ -6,7 +6,7 @@ use axum::{
 use uuid::Uuid;
 
 use super::dto::*;
-use crate::auth::validate_ticket;
+use crate::auth::{require_internal_token, validate_ticket};
 
 // AppState defined in main.rs - re-export for handlers
 pub use crate::AppState;
@@ -50,8 +50,13 @@ pub async fn init_upload(
 // POST /internal/upload/{id}/signed-urls
 pub async fn generate_signed_urls(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(upload_id): Path<Uuid>,
 ) -> Result<Json<SignedUrlsResponse>, (StatusCode, Json<ErrorResponse>)> {
+    // Validate internal service token
+    require_internal_token(&headers, &state.internal_token)
+        .map_err(|e| error_response(StatusCode::UNAUTHORIZED, &e.to_string()))?;
+
     let response = state
         .upload_service
         .generate_signed_urls(upload_id)
@@ -64,8 +69,13 @@ pub async fn generate_signed_urls(
 // POST /internal/upload/{id}/confirm
 pub async fn confirm_upload(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(upload_id): Path<Uuid>,
 ) -> Result<Json<ConfirmUploadResponse>, (StatusCode, Json<ErrorResponse>)> {
+    // Validate internal service token
+    require_internal_token(&headers, &state.internal_token)
+        .map_err(|e| error_response(StatusCode::UNAUTHORIZED, &e.to_string()))?;
+
     let response = state
         .upload_service
         .confirm_upload(upload_id)
@@ -78,8 +88,13 @@ pub async fn confirm_upload(
 // GET /internal/upload/file/{id}/read-url
 pub async fn generate_read_url(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(file_id): Path<Uuid>,
 ) -> Result<Json<ReadUrlResponse>, (StatusCode, Json<ErrorResponse>)> {
+    // Validate internal service token
+    require_internal_token(&headers, &state.internal_token)
+        .map_err(|e| error_response(StatusCode::UNAUTHORIZED, &e.to_string()))?;
+
     let response = state
         .upload_service
         .generate_read_url(file_id)
@@ -92,8 +107,13 @@ pub async fn generate_read_url(
 // POST /internal/upload/transfer
 pub async fn transfer_uploads(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(req): Json<TransferRequest>,
 ) -> Result<Json<TransferResponse>, (StatusCode, Json<ErrorResponse>)> {
+    // Validate internal service token
+    require_internal_token(&headers, &state.internal_token)
+        .map_err(|e| error_response(StatusCode::UNAUTHORIZED, &e.to_string()))?;
+
     let response = state
         .upload_service
         .transfer_uploads(req.session_id, req.user_id)

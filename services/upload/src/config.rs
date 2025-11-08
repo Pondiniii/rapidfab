@@ -20,6 +20,7 @@ pub struct Config {
 
     // Auth
     pub upload_ticket_secret: String,
+    pub internal_service_token: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -92,6 +93,7 @@ impl Config {
             },
 
             upload_ticket_secret: std::env::var("UPLOAD_TICKET_SECRET")?,
+            internal_service_token: std::env::var("INTERNAL_SERVICE_TOKEN")?,
         })
     }
 
