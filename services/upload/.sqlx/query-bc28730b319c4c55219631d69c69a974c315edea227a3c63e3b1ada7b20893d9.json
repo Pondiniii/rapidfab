@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT id, s3_key, filename FROM files\n                WHERE upload_id = $1\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "s3_key",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "filename",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "bc28730b319c4c55219631d69c69a974c315edea227a3c63e3b1ada7b20893d9"
+}

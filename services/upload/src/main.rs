@@ -123,6 +123,7 @@ async fn main() -> anyhow::Result<()> {
             "/internal/upload/file/:id/read-url",
             get(handlers::generate_read_url),
         )
+        .route("/internal/upload/transfer", post(handlers::transfer_uploads))
         .with_state(app_state);
 
     // Start server

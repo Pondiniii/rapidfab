@@ -89,6 +89,20 @@ pub async fn generate_read_url(
     Ok(Json(response))
 }
 
+// POST /internal/upload/transfer
+pub async fn transfer_uploads(
+    State(state): State<AppState>,
+    Json(req): Json<TransferRequest>,
+) -> Result<Json<TransferResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let response = state
+        .upload_service
+        .transfer_uploads(req.session_id, req.user_id)
+        .await
+        .map_err(|e| error_response(StatusCode::BAD_REQUEST, &e.to_string()))?;
+
+    Ok(Json(response))
+}
+
 // Helper
 fn error_response(status: StatusCode, message: &str) -> (StatusCode, Json<ErrorResponse>) {
     (

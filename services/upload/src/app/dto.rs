@@ -56,6 +56,19 @@ pub struct ReadUrlResponse {
     pub expires_at: String,
 }
 
+// POST /internal/upload/transfer
+#[derive(Debug, Deserialize)]
+pub struct TransferRequest {
+    pub session_id: String,
+    pub user_id: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TransferResponse {
+    pub transferred_count: usize,
+    pub files_moved: usize,
+}
+
 // Error response
 #[derive(Debug, Serialize)]
 pub struct ErrorResponse {

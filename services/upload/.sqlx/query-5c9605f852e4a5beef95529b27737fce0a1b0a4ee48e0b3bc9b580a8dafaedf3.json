@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    UPDATE files SET s3_key = $1\n                    WHERE id = $2\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5c9605f852e4a5beef95529b27737fce0a1b0a4ee48e0b3bc9b580a8dafaedf3"
+}

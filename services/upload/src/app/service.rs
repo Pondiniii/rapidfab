@@ -259,4 +259,110 @@ impl UploadService {
 
         Ok(ReadUrlResponse { url, expires_at })
     }
+
+    /// Transfer anonymous uploads to user account (post-registration)
+    pub async fn transfer_uploads(
+        &self,
+        session_id: String,
+        user_id: String,
+    ) -> Result<TransferResponse> {
+        let user_id_uuid = Uuid::parse_str(&user_id)?;
+
+        // Find all uploads for this session
+        let uploads = sqlx::query!(
+            r#"
+            SELECT id FROM uploads
+            WHERE session_id = $1
+            "#,
+            Uuid::parse_str(&session_id)?,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        if uploads.is_empty() {
+            return Ok(TransferResponse {
+                transferred_count: 0,
+                files_moved: 0,
+            });
+        }
+
+        let mut total_files_moved = 0;
+
+        // For each upload, move files in S3 and update DB
+        for upload in &uploads {
+            // Get files
+            let files = sqlx::query!(
+                r#"
+                SELECT id, s3_key, filename FROM files
+                WHERE upload_id = $1
+                "#,
+                upload.id,
+            )
+            .fetch_all(&self.pool)
+            .await?;
+
+            // Move each file in S3
+            for file in &files {
+                // Parse current key to extract extension
+                let ext = std::path::Path::new(&file.s3_key)
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .unwrap_or("bin");
+
+                // Build new user key
+                let new_s3_key =
+                    S3Client::build_user_key(&user_id, &file.id.to_string(), ext);
+
+                // Move in S3 (copy + delete)
+                self.s3_client
+                    .move_file(&file.s3_key, &new_s3_key)
+                    .await?;
+
+                // Update DB with new key
+                sqlx::query!(
+                    r#"
+                    UPDATE files SET s3_key = $1
+                    WHERE id = $2
+                    "#,
+                    new_s3_key,
+                    file.id,
+                )
+                .execute(&self.pool)
+                .await?;
+
+                total_files_moved += 1;
+            }
+
+            // Update upload record: session_id → user_id
+            sqlx::query!(
+                r#"
+                UPDATE uploads
+                SET user_id = $1, session_id = NULL
+                WHERE id = $2
+                "#,
+                user_id_uuid,
+                upload.id,
+            )
+            .execute(&self.pool)
+            .await?;
+        }
+
+        // Transfer quota (session → user)
+        sqlx::query!(
+            r#"
+            UPDATE upload_quotas
+            SET user_id = $1, session_id = NULL
+            WHERE session_id = $2
+            "#,
+            user_id_uuid,
+            Uuid::parse_str(&session_id)?,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(TransferResponse {
+            transferred_count: uploads.len(),
+            files_moved: total_files_moved,
+        })
+    }
 }

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE upload_quotas\n            SET user_id = $1, session_id = NULL\n            WHERE session_id = $2\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1d5e4e1b0f988580a20649e60a552b1495d8e2601c55ff53252c9bae9e78caa5"
+}

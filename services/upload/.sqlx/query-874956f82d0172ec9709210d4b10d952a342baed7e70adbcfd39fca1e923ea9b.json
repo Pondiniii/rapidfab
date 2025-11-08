@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE uploads\n                SET user_id = $1, session_id = NULL\n                WHERE id = $2\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "874956f82d0172ec9709210d4b10d952a342baed7e70adbcfd39fca1e923ea9b"
+}
