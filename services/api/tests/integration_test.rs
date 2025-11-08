@@ -1,11 +1,11 @@
 //! Integration Tests for Authentication Flow
 //!
-//! These tests are marked with `#[ignore]` and are NOT run during CI.
+//! These tests are run automatically during CI (after Docker stack starts).
 //!
-//! ## Why ignored?
-//! - Require running server (http://localhost:8080)
-//! - CI runs these tests BEFORE Docker stack starts
-//! - Alternative: E2E bash tests in tests/e2e/ (run during CI)
+//! ## CI Execution:
+//! - Taskfile runs: docker-compose up → wait-healthy → test:integration
+//! - Tests run against live services (localhost:8080)
+//! - Requires PostgreSQL + Redis running
 //!
 //! ## How to run manually:
 //! ```bash
@@ -27,7 +27,6 @@ use serde_json::json;
 /// Requires PostgreSQL running on localhost:5432
 /// Run with: cargo test --test integration_test -- --ignored
 #[tokio::test]
-#[ignore] // Run only when explicitly requested
 async fn test_auth_flow() {
     // Note: requires docker-compose up -d
     let client = reqwest::Client::new();
@@ -138,7 +137,6 @@ async fn test_auth_flow() {
 
 /// Test registration with duplicate email
 #[tokio::test]
-#[ignore]
 async fn test_duplicate_email() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -178,7 +176,6 @@ async fn test_duplicate_email() {
 
 /// Test invalid credentials
 #[tokio::test]
-#[ignore]
 async fn test_invalid_credentials() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -202,7 +199,6 @@ async fn test_invalid_credentials() {
 
 /// Test session expiration (token invalidation)
 #[tokio::test]
-#[ignore]
 async fn test_token_invalidation_after_multiple_logouts() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -262,7 +258,6 @@ async fn test_token_invalidation_after_multiple_logouts() {
 
 /// Test wrong password after correct registration
 #[tokio::test]
-#[ignore]
 async fn test_login_with_wrong_password() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -304,7 +299,6 @@ async fn test_login_with_wrong_password() {
 
 /// Test getting user profile requires valid token
 #[tokio::test]
-#[ignore]
 async fn test_get_user_requires_authentication() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -324,7 +318,6 @@ async fn test_get_user_requires_authentication() {
 
 /// Test multiple registrations and logins in sequence
 #[tokio::test]
-#[ignore]
 async fn test_multiple_users_independent_sessions() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -395,7 +388,6 @@ async fn test_multiple_users_independent_sessions() {
 
 /// Test login returns new token each time
 #[tokio::test]
-#[ignore]
 async fn test_multiple_logins_return_different_tokens() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -481,7 +473,6 @@ async fn test_multiple_logins_return_different_tokens() {
 
 /// Test profile request includes correct user data
 #[tokio::test]
-#[ignore]
 async fn test_user_profile_contains_correct_data() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";

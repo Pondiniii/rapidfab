@@ -1,12 +1,12 @@
 //! Security and Edge Case Integration Tests
 //!
-//! These tests are marked with `#[ignore]` and are NOT run during CI.
+//! These tests are run automatically during CI (after Docker stack starts).
 //!
-//! ## Why ignored?
-//! - Require running server (http://localhost:8080)
-//! - CI runs these tests BEFORE Docker stack starts
-//! - Tests document API behavior for security edge cases
-//! - Manual testing recommended before production deployment
+//! ## CI Execution:
+//! - Taskfile runs: docker-compose up → wait-healthy → test:integration
+//! - Tests run against live server (http://localhost:8080)
+//! - Documents API behavior for security edge cases
+//! - Validates SQL injection, XSS, auth header edge cases
 //!
 //! ## How to run manually:
 //! ```bash
@@ -26,7 +26,6 @@ use reqwest::StatusCode;
 use serde_json::json;
 
 #[tokio::test]
-#[ignore]
 async fn test_empty_email_and_password_fields() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -52,7 +51,6 @@ async fn test_empty_email_and_password_fields() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_short_password_accepted() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -80,7 +78,6 @@ async fn test_short_password_accepted() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_invalid_email_format_accepted() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -109,7 +106,6 @@ async fn test_invalid_email_format_accepted() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_sql_injection_blocked_by_sqlx() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -148,7 +144,6 @@ async fn test_sql_injection_blocked_by_sqlx() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_xss_attempt_in_full_name() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -193,7 +188,6 @@ async fn test_xss_attempt_in_full_name() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_missing_authorization_header() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -212,7 +206,6 @@ async fn test_missing_authorization_header() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_invalid_bearer_token_format() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -237,7 +230,6 @@ async fn test_invalid_bearer_token_format() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_malformed_token() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -265,7 +257,6 @@ async fn test_malformed_token() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_empty_password_on_login() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -286,7 +277,6 @@ async fn test_empty_password_on_login() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_case_insensitive_email_handling() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -328,7 +318,6 @@ async fn test_case_insensitive_email_handling() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_logout_without_auth_header() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -343,7 +332,6 @@ async fn test_logout_without_auth_header() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_logout_with_invalid_token() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -364,7 +352,6 @@ async fn test_logout_with_invalid_token() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_double_logout_behavior() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -412,7 +399,6 @@ async fn test_double_logout_behavior() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_very_long_email() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -439,7 +425,6 @@ async fn test_very_long_email() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_very_long_password() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -467,7 +452,6 @@ async fn test_very_long_password() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_special_characters_in_email() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -506,7 +490,6 @@ async fn test_special_characters_in_email() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_unicode_in_full_name() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";
@@ -534,7 +517,6 @@ async fn test_unicode_in_full_name() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_rapid_repeated_requests() {
     let client = reqwest::Client::new();
     let base_url = "http://localhost:8080";

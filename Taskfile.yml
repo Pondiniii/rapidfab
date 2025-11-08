@@ -19,15 +19,15 @@ tasks:
   ci:
     desc: Full CI pipeline - run after agent work
     summary: |
-      Runs complete CI pipeline (SILENT MODE - only shows failures):
+      Runs complete CI pipeline:
       1. Stop Docker if running
       2. Format check (API + Upload services)
       3. Linter (API + Upload services)
       4. Unit tests (API + Upload services)
-      5. Integration tests (API only)
-      6. Build Docker images
-      7. Deploy Docker stack
-      8. Wait for services healthy
+      5. Build Docker images
+      6. Deploy Docker stack
+      7. Wait for services healthy
+      8. Integration tests (API + Upload services - requires running Docker)
       9. E2E tests (auto-discovered from tests/e2e/*_test.sh)
       10. Cleanup Docker
 
@@ -43,10 +43,11 @@ tasks:
       - task: lint:upload
       - task: test:unit
       - task: test:unit:upload
-      - task: test:integration
       - docker-compose -f docker-compose.minimal.yml build
       - docker-compose -f docker-compose.minimal.yml up -d >/dev/null 2>&1
       - task: docker:wait-healthy
+      - task: test:integration
+      - task: test:integration:upload
       - task: test:e2e
       - docker-compose -f docker-compose.minimal.yml down -v >/dev/null 2>&1
       - echo "✅ CI passed"
@@ -128,6 +129,15 @@ tasks:
       SQLX_OFFLINE: "true"
     cmds:
       - cargo test --lib --bins
+
+  test:integration:upload:
+    desc: Run integration tests (upload service)
+    dir: "{{.UPLOAD_DIR}}"
+    silent: false
+    env:
+      SQLX_OFFLINE: "true"
+    cmds:
+      - cargo test --test '*' -- --ignored --test-threads=1
 
   test:e2e:
     desc: Run E2E tests (auto-discovery)
