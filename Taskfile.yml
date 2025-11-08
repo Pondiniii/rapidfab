@@ -43,7 +43,6 @@ tasks:
       - docker-compose up -d >/dev/null 2>&1
       - task: docker:wait-healthy
       - task: test:e2e
-      - docker-compose down -v >/dev/null 2>&1
       - echo "✅ CI passed"
 
   fmt:
@@ -103,7 +102,7 @@ tasks:
     desc: Run E2E tests (auto-discovery)
     silent: true
     cmds:
-      - ./scripts/test-e2e.sh 2>&1 | grep -E "FAILED|❌|Error|Failed" || true
+      - ./tests/test-e2e.sh 2>&1 | grep -E "FAILED|❌|Error|Failed" || true
 
   build:
     desc: Build API in release mode
