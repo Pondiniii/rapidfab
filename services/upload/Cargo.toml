@@ -38,6 +38,7 @@ sqlx = { version = "0.8", features = ["postgres", "runtime-tokio", "tls-rustls",
 # Utilities
 uuid = { version = "1.11", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
+url = "2.5"
 
 # JWT/Auth
 jsonwebtoken = "9"

@@ -26,6 +26,9 @@ pub struct Config {
     pub database_url: String,
     pub s3: S3Config,
     pub quota: QuotaConfig,
+    pub upload_service_url: String,
+    pub upload_ticket_secret: String,
+    pub internal_service_token: String,
 }
 
 impl Config {
@@ -56,6 +59,10 @@ impl Config {
                     .unwrap_or_else(|_| "10".to_string())
                     .parse()?,
             },
+            upload_service_url: std::env::var("UPLOAD_SERVICE_URL")
+                .unwrap_or_else(|_| "http://upload:8082".to_string()),
+            upload_ticket_secret: std::env::var("UPLOAD_TICKET_SECRET")?,
+            internal_service_token: std::env::var("INTERNAL_SERVICE_TOKEN")?,
         })
     }
 }

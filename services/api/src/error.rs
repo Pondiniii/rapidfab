@@ -24,6 +24,12 @@ pub enum AppError {
     #[error("Validation error: {0}")]
     Validation(String),
 
+    #[error("Resource not found")]
+    NotFound,
+
+    #[error("Forbidden")]
+    Forbidden,
+
     #[error("Internal server error")]
     Internal,
 }
@@ -36,6 +42,8 @@ impl IntoResponse for AppError {
             AppError::InvalidCredentials => (StatusCode::UNAUTHORIZED, "Invalid credentials"),
             AppError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
             AppError::Validation(ref msg) => (StatusCode::BAD_REQUEST, msg.as_str()),
+            AppError::NotFound => (StatusCode::NOT_FOUND, "Resource not found"),
+            AppError::Forbidden => (StatusCode::FORBIDDEN, "Forbidden"),
             AppError::Internal => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error"),
         };
 

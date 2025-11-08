@@ -1,20 +1,13 @@
 //! Integration Tests for Upload Service
 //!
-//! These tests verify core upload service functionality and are run automatically during CI.
+//! Uruchamiane automatycznie w CI (Taskfile: docker-compose up → test:integration:upload).
+//! Wymagają działającego Postgresa z migracjami (uruchamianymi przez API service).
 //!
-//! ## CI Execution:
-//! - Taskfile runs: docker-compose up → wait-healthy → test:integration:upload
-//! - Tests run against live services (requires Docker stack running)
-//! - Uses `cargo test --test '*' -- --ignored --test-threads=1`
-//!
-//! ## How to run manually:
+//! ## Lokalnie:
 //! ```bash
-//! # Start Docker stack
 //! docker-compose -f docker-compose.minimal.yml up -d
-//!
-//! # Run integration tests
-//! cd services/upload
-//! cargo test --test '*' -- --ignored --test-threads=1
+//! cd services/api && sqlx migrate run
+//! cd ../upload && cargo test --test '*'
 //! ```
 
 use upload_service::config::Config;

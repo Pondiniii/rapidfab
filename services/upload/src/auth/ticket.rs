@@ -61,6 +61,7 @@ pub fn validate_ticket(token: &str, secret: &str) -> Result<UploadTicket> {
 
     let mut validation = Validation::new(Algorithm::HS256);
     validation.validate_exp = false; // We check manually via ticket.is_expired()
+    validation.required_spec_claims.remove("exp");
 
     let token_data = decode::<UploadTicket>(
         token,

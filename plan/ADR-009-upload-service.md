@@ -110,6 +110,10 @@ Upload service successfully implemented in `services/upload/`:
 - anon/{session_id}/{file_id}.ext (7-day lifecycle)
 - users/{user_id}/{file_id}.ext (permanent)
 
+**Local dev notes (2025-11-08 hotfix):**
+- `S3_PUBLIC_ENDPOINT` pozwala wygenerować presigned URL z hostem dostępnym dla przeglądarki/CI (np. `http://localhost:9000` dla MinIO), bez zmiany endpointu używanego przez sam serwis.
+- Klient MUSI uploadować z takim samym `content_type` i rozmiarem (`size_bytes`) jak zadeklarował przy `/files/upload/init`, inaczej podpis AWS4 zostanie odrzucony (test `upload_flow_test.sh` wymusza deterministyczny plik 256 B).
+
 **Security:**
 - Path traversal prevention
 - Content-Type + Content-Length enforcement

@@ -30,6 +30,7 @@ pub struct S3Config {
     pub region: String,
     pub access_key_id: String,
     pub secret_access_key: String,
+    pub public_endpoint: Option<String>,
 }
 
 // Allow dead code until all features are implemented
@@ -69,6 +70,7 @@ impl Config {
                 region: std::env::var("S3_REGION")?,
                 access_key_id: std::env::var("S3_ACCESS_KEY_ID")?,
                 secret_access_key: std::env::var("S3_SECRET_ACCESS_KEY")?,
+                public_endpoint: std::env::var("S3_PUBLIC_ENDPOINT").ok(),
             },
 
             limits: UploadLimits {
@@ -104,6 +106,7 @@ impl Config {
             port: self.port,
             database_url: mask_connection_string(&self.database_url),
             s3_endpoint: self.s3.endpoint.clone(),
+            s3_public_endpoint: self.s3.public_endpoint.clone(),
             s3_bucket: self.s3.bucket.clone(),
             s3_region: self.s3.region.clone(),
             limits: self.limits.clone(),
@@ -119,6 +122,7 @@ pub struct MaskedConfig {
     pub port: u16,
     pub database_url: String,
     pub s3_endpoint: String,
+    pub s3_public_endpoint: Option<String>,
     pub s3_bucket: String,
     pub s3_region: String,
     pub limits: UploadLimits,

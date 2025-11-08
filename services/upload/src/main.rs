@@ -83,6 +83,7 @@ async fn main() -> anyhow::Result<()> {
         &config.s3.region,
         &config.s3.access_key_id,
         &config.s3.secret_access_key,
+        config.s3.public_endpoint.clone(),
     )
     .await?;
 

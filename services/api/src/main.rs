@@ -32,27 +32,25 @@ async fn main() -> anyhow::Result<()> {
     db::run_migrations(&pool).await?;
     tracing::info!("Database migrations completed");
 
-    // Upload service configuration
-    let upload_service_url =
-        std::env::var("UPLOAD_SERVICE_URL").unwrap_or_else(|_| "http://upload:8082".to_string());
-    let upload_url = Arc::new(app::upload::routes::UploadServiceUrl(upload_service_url));
-    tracing::info!(upload_url = %upload_url.0, "Upload service configured");
+    let config_arc = Arc::new(config);
+    let pool_arc = Arc::new(pool);
 
-    // Build application router
+    let upload_router = app::upload::routes::router().with_state(config_arc.clone());
+
     let app = Router::new()
+        .nest("/health", app::health::routes::router())
         .nest("/auth", app::auth::routes::router())
         .nest("/users", app::users::routes::router())
-        .nest("/files", app::upload::routes::router())
-        .nest("/health", app::health::routes::router())
+        .nest("/files", upload_router)
         .merge(app::metrics::routes::router())
-        .layer(Extension(Arc::new(pool)))
-        .layer(Extension(upload_url))
+        .layer(middleware::from_fn(app::session_middleware))
         .layer(middleware::from_fn(
             rapidfab_api::middleware::metrics::track_metrics,
-        ));
+        ))
+        .layer(Extension(pool_arc));
 
     // Start server
-    let addr = format!("{}:{}", config.api_host, config.api_port);
+    let addr = format!("{}:{}", config_arc.api_host, config_arc.api_port);
     tracing::info!(addr = %addr, "Server listening");
 
     let listener = tokio::net::TcpListener::bind(&addr).await?;

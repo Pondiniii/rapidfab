@@ -1,4 +1,5 @@
 use anyhow::{bail, Context, Result};
+use aws_config::BehaviorVersion;
 use aws_sdk_s3::config::{Credentials, Region};
 use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::Client;
@@ -8,6 +9,7 @@ use std::time::Duration;
 #[allow(dead_code)]
 pub struct S3Client {
     client: Client,
+    presign_client: Option<Client>,
     bucket: String,
 }
 
@@ -21,6 +23,7 @@ impl S3Client {
         region: &str,
         access_key_id: &str,
         secret_access_key: &str,
+        public_endpoint: Option<String>,
     ) -> Result<Self> {
         let credentials = Credentials::new(
             access_key_id,
@@ -30,22 +33,40 @@ impl S3Client {
             "upload-service",
         );
 
-        let config = aws_config::defaults(aws_config::BehaviorVersion::latest())
+        let base_config = aws_config::defaults(BehaviorVersion::latest())
             .endpoint_url(endpoint)
             .region(Region::new(region.to_string()))
-            .credentials_provider(credentials)
+            .credentials_provider(credentials.clone())
             .load()
             .await;
 
-        let s3_config = aws_sdk_s3::Config::from(&config)
+        let base_builder = aws_sdk_s3::Config::from(&base_config)
             .to_builder()
-            .force_path_style(true) // Required for Hetzner S3
-            .build();
+            .force_path_style(true); // Required for Hetzner/MinIO S3
 
-        let client = Client::from_conf(s3_config);
+        let client = Client::from_conf(base_builder.clone().build());
+
+        let presign_client = if let Some(public_endpoint) = public_endpoint {
+            let public_config = aws_config::defaults(BehaviorVersion::latest())
+                .endpoint_url(public_endpoint)
+                .region(Region::new(region.to_string()))
+                .credentials_provider(credentials)
+                .load()
+                .await;
+
+            Some(Client::from_conf(
+                aws_sdk_s3::Config::from(&public_config)
+                    .to_builder()
+                    .force_path_style(true)
+                    .build(),
+            ))
+        } else {
+            None
+        };
 
         Ok(Self {
             client,
+            presign_client,
             bucket: bucket.to_string(),
         })
     }
@@ -56,7 +77,7 @@ impl S3Client {
         &self,
         s3_key: &str,
         content_type: &str,
-        max_size_bytes: u64,
+        _max_size_bytes: u64,
         expires_in_secs: u64,
     ) -> Result<String> {
         // Validate key (no path traversal)
@@ -67,12 +88,11 @@ impl S3Client {
         let presigning_config = PresigningConfig::expires_in(Duration::from_secs(expires_in_secs))?;
 
         let presigned_request = self
-            .client
+            .presign_client()
             .put_object()
             .bucket(&self.bucket)
             .key(s3_key)
             .content_type(content_type)
-            .content_length(max_size_bytes as i64)
             .presigned(presigning_config)
             .await?;
 
@@ -92,7 +112,7 @@ impl S3Client {
         let presigning_config = PresigningConfig::expires_in(Duration::from_secs(expires_in_secs))?;
 
         let presigned_request = self
-            .client
+            .presign_client()
             .get_object()
             .bucket(&self.bucket)
             .key(s3_key)
@@ -170,6 +190,9 @@ impl S3Client {
     /// Build S3 key for authenticated user upload
     pub fn build_user_key(user_id: &str, file_id: &str, extension: &str) -> String {
         format!("users/{user_id}/{file_id}.{extension}")
+    }
+    fn presign_client(&self) -> &Client {
+        self.presign_client.as_ref().unwrap_or(&self.client)
     }
 }
 

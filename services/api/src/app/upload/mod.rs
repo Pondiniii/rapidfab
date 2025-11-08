@@ -13,6 +13,8 @@ struct UploadTicket {
     file_name: String,
     max_size_bytes: u64,
     expires_at: String,
+    #[serde(rename = "exp")]
+    expires_at_epoch: i64,
     iat: i64,
 }
 
@@ -24,13 +26,15 @@ pub fn generate_anon_ticket(
     secret: &str,
 ) -> Result<String> {
     let expires_at = Utc::now() + Duration::minutes(2);
+    let expires_at_str = expires_at.to_rfc3339();
 
     let ticket = UploadTicket {
         session_id: Some(session_id),
         user_id: None,
         file_name,
         max_size_bytes,
-        expires_at: expires_at.to_rfc3339(),
+        expires_at: expires_at_str,
+        expires_at_epoch: expires_at.timestamp(),
         iat: Utc::now().timestamp(),
     };
 
@@ -51,13 +55,15 @@ pub fn generate_user_ticket(
     secret: &str,
 ) -> Result<String> {
     let expires_at = Utc::now() + Duration::minutes(2);
+    let expires_at_str = expires_at.to_rfc3339();
 
     let ticket = UploadTicket {
         session_id: None,
         user_id: Some(user_id.to_string()),
         file_name,
         max_size_bytes,
-        expires_at: expires_at.to_rfc3339(),
+        expires_at: expires_at_str,
+        expires_at_epoch: expires_at.timestamp(),
         iat: Utc::now().timestamp(),
     };
 
